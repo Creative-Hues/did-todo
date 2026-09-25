@@ -2,7 +2,8 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from './db';
-import { addAlter, moveAlter, setAlterHidden, updateAlter } from './alterRepo';
+import { addAlter, countAlterRecords, deleteAlter, reorderAlters, setAlterHidden, updateAlter } from './alterRepo';
+import { addTask } from './taskRepo';
 
 describe('人格の保存', () => {
   let database: AppDatabase;
@@ -51,15 +52,48 @@ describe('人格の保存', () => {
     expect((await database.alters.get(a.id))?.hidden).toBe(false);
   });
 
-  it('上へ・下へで隣と入れ替わる', async () => {
+  it('並べ替えた順番で保存される', async () => {
     const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
     const b = await addAlter(database, { name: 'B', color: '#222222' }, now);
-    await moveAlter(database, b.id, 'up');
+    const c = await addAlter(database, { name: 'C', color: '#333333' }, now);
+    await reorderAlters(database, [c.id, a.id, b.id]);
     const ordered = await database.alters.orderBy('order').toArray();
-    expect(ordered.map((alter) => alter.id)).toEqual([b.id, a.id]);
+    expect(ordered.map((alter) => alter.id)).toEqual([c.id, a.id, b.id]);
+  });
 
-    await moveAlter(database, b.id, 'up'); // 先頭なので何も起きない
-    const again = await database.alters.orderBy('order').toArray();
-    expect(again.map((alter) => alter.id)).toEqual([b.id, a.id]);
+  describe('削除', () => {
+    const recordOf = (alterId: string | null) => ({
+      id: crypto.randomUUID(),
+      taskId: 't',
+      alterId,
+      completedAt: now.toISOString(),
+    });
+
+    it('記録がない人格は削除でき、タスクの「気にしている人格」からも外れる', async () => {
+      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
+      const b = await addAlter(database, { name: 'B', color: '#222222' }, now);
+      const withA = await addTask(database, { name: '掃除', cycle: { type: 'daily' }, careAlterIds: [a.id, b.id] }, now);
+      const withoutA = await addTask(database, { name: '洗濯', cycle: { type: 'daily' }, careAlterIds: [b.id] }, now);
+      // ほかの人格の記録や「わからない」の記録があっても、A は削除できる
+      await database.records.bulkAdd([recordOf(b.id), recordOf(null)]);
+
+      expect(await countAlterRecords(database, a.id)).toBe(0);
+      expect(await deleteAlter(database, a.id)).toBe(true);
+      expect(await database.alters.get(a.id)).toBeUndefined();
+      expect((await database.tasks.get(withA.id))?.careAlterIds).toEqual([b.id]);
+      expect((await database.tasks.get(withoutA.id))?.careAlterIds).toEqual([b.id]);
+      expect(await database.records.count()).toBe(2);
+    });
+
+    it('記録がある人格は削除されない', async () => {
+      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
+      const task = await addTask(database, { name: '掃除', cycle: { type: 'daily' }, careAlterIds: [a.id] }, now);
+      await database.records.add(recordOf(a.id));
+
+      expect(await countAlterRecords(database, a.id)).toBe(1);
+      expect(await deleteAlter(database, a.id)).toBe(false);
+      expect(await database.alters.get(a.id)).toBeDefined();
+      expect((await database.tasks.get(task.id))?.careAlterIds).toEqual([a.id]);
+    });
   });
 });

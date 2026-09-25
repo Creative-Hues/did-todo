@@ -1,12 +1,12 @@
 // タスクの設定(一覧+追加・編集)
 import { useState } from 'react';
 import { db } from '../../db/db';
-import { addTask, moveTask, setTaskHidden, updateTask, type TaskInput } from '../../db/taskRepo';
+import { addTask, reorderTasks, setTaskHidden, updateTask, type TaskInput } from '../../db/taskRepo';
 import { cycleLabel } from '../../lib/cycleLabel';
 import { sortForSettings } from '../../lib/ordering';
 import { showSaveError } from '../../lib/showError';
 import type { Alter, Task } from '../../lib/types';
-import { ItemRow } from './ItemRow';
+import { ItemRow, swapIds } from './ItemRow';
 import { TaskForm } from './TaskForm';
 
 /** 編集中の状態:なし / 新規追加 / 既存のタスクの編集 */
@@ -42,8 +42,8 @@ export function TaskList({ tasks, alters }: Props) {
       hidden={task.hidden}
       canMoveUp={index > 0}
       canMoveDown={index < list.length - 1}
-      onMoveUp={() => moveTask(db, task.id, 'up').catch(showSaveError)}
-      onMoveDown={() => moveTask(db, task.id, 'down').catch(showSaveError)}
+      onMoveUp={() => reorderTasks(db, swapIds(list, index, index - 1)).catch(showSaveError)}
+      onMoveDown={() => reorderTasks(db, swapIds(list, index, index + 1)).catch(showSaveError)}
       onEdit={() => setEditing({ mode: 'edit', task })}
       onToggleHidden={() => setTaskHidden(db, task.id, !task.hidden).catch(showSaveError)}
     >

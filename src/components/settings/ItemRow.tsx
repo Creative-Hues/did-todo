@@ -12,6 +12,13 @@ interface Props {
   onToggleHidden: () => void;
 }
 
+/** 段階Bでドラッグに置き換えるまでの仮の処理:2つの項目を入れ替えたIDの並びを返す */
+export function swapIds(list: readonly { id: string }[], from: number, to: number): string[] {
+  const ids = list.map((item) => item.id);
+  [ids[from], ids[to]] = [ids[to], ids[from]];
+  return ids;
+}
+
 export function ItemRow(props: Props) {
   return (
     <li className={props.hidden ? 'item-row item-row--hidden' : 'item-row'}>

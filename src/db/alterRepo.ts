@@ -1,6 +1,6 @@
-// 人格の保存・更新(削除はしない。SPEC.md 3.1)
+// 人格の保存・更新・削除(削除は完了記録がない人格だけ。SPEC.md 3.1)
 import type { AppDatabase } from './db';
-import { computeSwap, nextOrder, type MoveDirection } from '../lib/ordering';
+import { nextOrder, reorderSubset } from '../lib/ordering';
 import type { Alter } from '../lib/types';
 
 /** 人格の入力内容(名前は normalizeName 済みのもの) */
@@ -36,15 +36,40 @@ export async function setAlterHidden(database: AppDatabase, id: string, hidden: 
   await database.alters.update(id, { hidden });
 }
 
-/** 表示中の人格の中で、上へ・下へ動かす */
-export async function moveAlter(database: AppDatabase, id: string, direction: MoveDirection): Promise<void> {
+/**
+ * 人格を並べ替える。
+ * @param orderedIds 並べ替えた後の順番に並んだ人格のID(対象でない人格の順番は変えない)
+ */
+export async function reorderAlters(database: AppDatabase, orderedIds: readonly string[]): Promise<void> {
   await database.transaction('rw', database.alters, async () => {
-    const swap = computeSwap(await database.alters.toArray(), id, direction);
-    if (!swap) {
-      return;
-    }
-    for (const change of swap) {
+    const changes = reorderSubset(await database.alters.toArray(), orderedIds);
+    for (const change of changes) {
       await database.alters.update(change.id, { order: change.order });
     }
+  });
+}
+
+/** その人格の完了記録の件数(記録は1年分だけなので、全件を見て数える) */
+export async function countAlterRecords(database: AppDatabase, id: string): Promise<number> {
+  return database.records.filter((record) => record.alterId === id).count();
+}
+
+/**
+ * 人格を削除し、すべてのタスクの「気にしている人格」からも外す。
+ * 完了記録が1件でもある人格は削除せず false を返す(削除したら true)
+ */
+export async function deleteAlter(database: AppDatabase, id: string): Promise<boolean> {
+  return database.transaction('rw', [database.alters, database.tasks, database.records], async () => {
+    if ((await countAlterRecords(database, id)) > 0) {
+      return false;
+    }
+    await database.alters.delete(id);
+    const tasks = await database.tasks.filter((task) => task.careAlterIds.includes(id)).toArray();
+    for (const task of tasks) {
+      await database.tasks.update(task.id, {
+        careAlterIds: task.careAlterIds.filter((alterId) => alterId !== id),
+      });
+    }
+    return true;
   });
 }

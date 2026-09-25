@@ -1,7 +1,8 @@
 // 人格の設定(一覧+追加・編集)
 import { useState } from 'react';
 import { db } from '../../db/db';
-import { addAlter, moveAlter, setAlterHidden, updateAlter, type AlterInput } from '../../db/alterRepo';
+import { addAlter, reorderAlters, setAlterHidden, updateAlter, type AlterInput } from '../../db/alterRepo';
+import { swapIds } from './ItemRow';
 import { sortForSettings } from '../../lib/ordering';
 import { showSaveError } from '../../lib/showError';
 import type { Alter } from '../../lib/types';
@@ -38,8 +39,8 @@ export function AlterList({ alters }: Props) {
       hidden={alter.hidden}
       canMoveUp={index > 0}
       canMoveDown={index < list.length - 1}
-      onMoveUp={() => moveAlter(db, alter.id, 'up').catch(showSaveError)}
-      onMoveDown={() => moveAlter(db, alter.id, 'down').catch(showSaveError)}
+      onMoveUp={() => reorderAlters(db, swapIds(list, index, index - 1)).catch(showSaveError)}
+      onMoveDown={() => reorderAlters(db, swapIds(list, index, index + 1)).catch(showSaveError)}
       onEdit={() => setEditing({ mode: 'edit', alter })}
       onToggleHidden={() => setAlterHidden(db, alter.id, !alter.hidden).catch(showSaveError)}
     >

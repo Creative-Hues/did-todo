@@ -1,6 +1,6 @@
-// タスクの保存・更新(削除はしない。SPEC.md 3.2)
+// タスクの保存・更新・削除(削除しても完了記録は残す。SPEC.md 3.2)
 import type { AppDatabase } from './db';
-import { computeSwap, nextOrder, type MoveDirection } from '../lib/ordering';
+import { nextOrder, reorderSubset } from '../lib/ordering';
 import type { Cycle, Task } from '../lib/types';
 
 /** タスクの入力内容(名前・日数はチェック済みのもの) */
@@ -42,15 +42,20 @@ export async function setTaskHidden(database: AppDatabase, id: string, hidden: b
   await database.tasks.update(id, { hidden });
 }
 
-/** 表示中のタスクの中で、上へ・下へ動かす */
-export async function moveTask(database: AppDatabase, id: string, direction: MoveDirection): Promise<void> {
+/**
+ * タスクを並べ替える(設定画面・ホーム画面の両方から使う)。
+ * @param orderedIds 並べ替えた後の順番に並んだタスクのID(対象でないタスクの順番は変えない)
+ */
+export async function reorderTasks(database: AppDatabase, orderedIds: readonly string[]): Promise<void> {
   await database.transaction('rw', database.tasks, async () => {
-    const swap = computeSwap(await database.tasks.toArray(), id, direction);
-    if (!swap) {
-      return;
-    }
-    for (const change of swap) {
+    const changes = reorderSubset(await database.tasks.toArray(), orderedIds);
+    for (const change of changes) {
       await database.tasks.update(change.id, { order: change.order });
     }
   });
+}
+
+/** タスクを削除する。そのタスクの完了記録は、月ごとの集計のために消さずに残す */
+export async function deleteTask(database: AppDatabase, id: string): Promise<void> {
+  await database.tasks.delete(id);
 }

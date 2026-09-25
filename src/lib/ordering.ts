@@ -1,4 +1,4 @@
-// 設定画面の並び順(人格・タスク共通)
+// 並び順(人格・タスク共通。設定画面とホーム画面の並び替えで使う)
 
 /** 並び替えできる項目(人格・タスクに共通する部分) */
 export interface Orderable {
@@ -6,8 +6,6 @@ export interface Orderable {
   hidden: boolean;
   order: number;
 }
-
-export type MoveDirection = 'up' | 'down';
 
 /** order の変更内容 */
 export interface OrderChange {
@@ -27,29 +25,23 @@ export function sortForSettings<T extends Orderable>(items: readonly T[]): { vis
 }
 
 /**
- * 表示中の項目の中で、指定した項目を隣と入れ替える。
- * 戻り値は order を書き換える2件。端にある・見つからない・非表示の場合は null
+ * 一部の項目(ホームの1欄や、設定画面の表示中の一覧)を並べ替えたときの order の変更を求める。
+ * 並べ替えた項目どうしで、元々使っていた order の「席」を新しい順に座り直す。
+ * そのため、並べ替えの対象でない項目(非表示・お休み・ほかの欄)の order は変わらない。
+ * @param items すべての項目
+ * @param orderedIds 並べ替えた後の順番に並んだID(見つからないIDは無視する)
+ * @returns order が変わる項目だけ
  */
-export function computeSwap(
-  items: readonly Orderable[],
-  id: string,
-  direction: MoveDirection,
-): [OrderChange, OrderChange] | null {
-  const { visible } = sortForSettings(items);
-  const index = visible.findIndex((item) => item.id === id);
-  if (index === -1) {
-    return null;
-  }
-  const otherIndex = direction === 'up' ? index - 1 : index + 1;
-  const other = visible[otherIndex];
-  if (!other) {
-    return null;
-  }
-  const target = visible[index];
-  return [
-    { id: target.id, order: other.order },
-    { id: other.id, order: target.order },
-  ];
+export function reorderSubset(items: readonly Orderable[], orderedIds: readonly string[]): OrderChange[] {
+  const byId = new Map(items.map((item) => [item.id, item]));
+  const targets = [...new Set(orderedIds)].flatMap((id) => {
+    const item = byId.get(id);
+    return item ? [item] : [];
+  });
+  const slots = targets.map((item) => item.order).sort((a, b) => a - b);
+  return targets
+    .map((item, index) => ({ id: item.id, order: slots[index] }))
+    .filter((change, index) => change.order !== targets[index].order);
 }
 
 /** 新しく追加する項目の order(いちばん最後) */

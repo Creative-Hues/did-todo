@@ -68,4 +68,10 @@ describe('ホーム画面の欄', () => {
     expect(buildHomeSections([task('weekly', { type: 'weekly' }, 0)], [], now).map((s) => s.key)).toEqual(['week']);
     expect(buildHomeSections([], [], now)).toEqual([]);
   });
+
+  it('削除したタスクの記録が残っていても、ほかのタスクの表示に影響しない', () => {
+    const records = [record('deleted', at(9, 25, 9))];
+    const [today] = buildHomeSections([task('daily', { type: 'daily' }, 0)], records, now);
+    expect(today.items.map((i) => [i.task.id, i.status])).toEqual([['daily', 'todo']]);
+  });
 });

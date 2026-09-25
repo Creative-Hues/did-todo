@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { computeSwap, nextOrder, sortForSettings, type Orderable } from './ordering';
+import { nextOrder, reorderSubset, sortForSettings, type Orderable } from './ordering';
 
 const items: Orderable[] = [
   { id: 'c', hidden: false, order: 2 },
@@ -16,26 +16,32 @@ describe('設定画面の並べ方', () => {
   });
 });
 
-describe('上へ・下へ', () => {
-  it('表示中の項目どうしで order を入れ替える(非表示は飛ばす)', () => {
-    expect(computeSwap(items, 'c', 'up')).toEqual([
+describe('並べ替え(reorderSubset)', () => {
+  it('表示中の一覧を並べ替えると、非表示の項目の order は変わらない', () => {
+    // a(0) c(2) d(3) → d c a
+    expect(reorderSubset(items, ['d', 'c', 'a'])).toEqual([
+      { id: 'd', order: 0 },
+      { id: 'a', order: 3 },
+    ]);
+  });
+
+  it('一部の項目だけ並べ替えると、その項目が使っていた席の中で入れ替わる', () => {
+    // a(0) と d(3) だけを入れ替える。c と h は動かない
+    expect(reorderSubset(items, ['d', 'a'])).toEqual([
+      { id: 'd', order: 0 },
+      { id: 'a', order: 3 },
+    ]);
+  });
+
+  it('順番が変わらなければ、変更はない', () => {
+    expect(reorderSubset(items, ['a', 'c', 'd'])).toEqual([]);
+  });
+
+  it('存在しないIDと重複したIDは無視する', () => {
+    expect(reorderSubset(items, ['c', 'zzz', 'a', 'c'])).toEqual([
       { id: 'c', order: 0 },
       { id: 'a', order: 2 },
     ]);
-    expect(computeSwap(items, 'c', 'down')).toEqual([
-      { id: 'c', order: 3 },
-      { id: 'd', order: 2 },
-    ]);
-  });
-
-  it('端にある項目は動かせない', () => {
-    expect(computeSwap(items, 'a', 'up')).toBeNull();
-    expect(computeSwap(items, 'd', 'down')).toBeNull();
-  });
-
-  it('非表示や存在しない項目は動かせない', () => {
-    expect(computeSwap(items, 'h', 'up')).toBeNull();
-    expect(computeSwap(items, 'zzz', 'down')).toBeNull();
   });
 });
 

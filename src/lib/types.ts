@@ -6,7 +6,7 @@ export interface Alter {
   name: string;
   /** 表示色(例:#4A90D9) */
   color: string;
-  /** 非表示フラグ(人格は削除しない) */
+  /** 非表示フラグ(人格は記録がないときだけ削除できる) */
   hidden: boolean;
   /** 表示順 */
   order: number;
@@ -28,7 +28,7 @@ export interface Task {
   cycle: Cycle;
   /** このタスクを気にしている人格のID(0人も可) */
   careAlterIds: string[];
-  /** 非表示フラグ(タスクは削除しない) */
+  /** 非表示フラグ(タスクは削除できるが、完了記録は残す) */
   hidden: boolean;
   /** 表示順 */
   order: number;
