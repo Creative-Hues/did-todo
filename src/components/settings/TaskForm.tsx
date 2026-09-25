@@ -63,7 +63,6 @@ export function TaskForm({ initial, selectableAlters, onSubmit, onCancel }: Prop
 
   return (
     <form className="edit-form" onSubmit={handleSubmit}>
-      <h3>{initial ? 'タスクを編集' : 'タスクを追加'}</h3>
       <label className="field">
         <span>タスク名</span>
         <input type="text" value={name} onChange={(event) => setName(event.target.value)} />

@@ -31,7 +31,6 @@ export function AlterForm({ initial, onSubmit, onCancel }: Props) {
 
   return (
     <form className="edit-form" onSubmit={handleSubmit}>
-      <h3>{initial ? '人格を編集' : '人格を追加'}</h3>
       <label className="field">
         <span>名前</span>
         <input type="text" value={name} onChange={(event) => setName(event.target.value)} />

@@ -1,8 +1,8 @@
 // ホーム画面(SPEC.md 5.1):今日・今週・今月の欄と、記録・取り消し
 import { useState } from 'react';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { AlterPickerSheet } from '../components/home/AlterPickerSheet';
 import { TaskSection } from '../components/home/TaskSection';
-import { UndoDialog } from '../components/home/UndoDialog';
 import { db } from '../db/db';
 import { addRecord, undoCurrentRecord } from '../db/recordRepo';
 import { useLiveQuery } from '../hooks/useLiveQuery';
@@ -88,8 +88,9 @@ export function HomeScreen({ onOpenSettings }: Props) {
         />
       )}
       {modal?.kind === 'undo' && (
-        <UndoDialog
-          labelText={modal.labelText}
+        <ConfirmDialog
+          message={`${modal.labelText} の記録を取り消しますか?`}
+          confirmLabel="取り消す"
           onConfirm={() => handleUndo(modal.task)}
           onCancel={() => setModal(null)}
         />

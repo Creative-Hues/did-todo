@@ -1,76 +1,54 @@
-// 人格の設定(一覧+追加・編集)
-import { useState } from 'react';
+// 人格の一覧(並び替え・追加・編集画面を開く)
 import { db } from '../../db/db';
-import { addAlter, reorderAlters, setAlterHidden, updateAlter, type AlterInput } from '../../db/alterRepo';
-import { swapIds } from './ItemRow';
+import { reorderAlters } from '../../db/alterRepo';
 import { sortForSettings } from '../../lib/ordering';
-import { showSaveError } from '../../lib/showError';
 import type { Alter } from '../../lib/types';
-import { AlterForm } from './AlterForm';
+import { SortableList } from '../common/SortableList';
 import { ItemRow } from './ItemRow';
-
-/** 編集中の状態:なし / 新規追加 / 既存の人格の編集 */
-type Editing = null | { mode: 'new' } | { mode: 'edit'; alter: Alter };
 
 interface Props {
   alters: Alter[];
+  onAdd: () => void;
+  onOpen: (alter: Alter) => void;
 }
 
-export function AlterList({ alters }: Props) {
-  const [editing, setEditing] = useState<Editing>(null);
+export function AlterList({ alters, onAdd, onOpen }: Props) {
   const { visible, hidden } = sortForSettings(alters);
 
-  const handleSubmit = async (input: AlterInput) => {
-    try {
-      if (editing?.mode === 'edit') {
-        await updateAlter(db, editing.alter.id, input);
-      } else {
-        await addAlter(db, input, new Date());
-      }
-      setEditing(null);
-    } catch (error) {
-      showSaveError(error);
-    }
-  };
-
-  const renderRow = (alter: Alter, index: number, list: Alter[]) => (
+  const renderRow = (alter: Alter) => (
     <ItemRow
-      key={alter.id}
+      name={alter.name}
       hidden={alter.hidden}
-      canMoveUp={index > 0}
-      canMoveDown={index < list.length - 1}
-      onMoveUp={() => reorderAlters(db, swapIds(list, index, index - 1)).catch(showSaveError)}
-      onMoveDown={() => reorderAlters(db, swapIds(list, index, index + 1)).catch(showSaveError)}
-      onEdit={() => setEditing({ mode: 'edit', alter })}
-      onToggleHidden={() => setAlterHidden(db, alter.id, !alter.hidden).catch(showSaveError)}
-    >
-      <span className="color-dot" style={{ backgroundColor: alter.color }} />
-      <span className="item-name">{alter.name}</span>
-    </ItemRow>
+      leading={<span className="color-dot" style={{ backgroundColor: alter.color }} />}
+      onOpen={() => onOpen(alter)}
+    />
   );
 
   return (
     <section className="settings-section">
       <h2>人格</h2>
-      {editing ? (
-        <AlterForm
-          // 編集対象が変わったら入力欄を作り直す
-          key={editing.mode === 'edit' ? editing.alter.id : 'new'}
-          initial={editing.mode === 'edit' ? editing.alter : undefined}
-          onSubmit={handleSubmit}
-          onCancel={() => setEditing(null)}
-        />
-      ) : (
-        <button type="button" className="add-button" onClick={() => setEditing({ mode: 'new' })}>
-          ＋ 人格を追加
-        </button>
-      )}
+      <button type="button" className="add-button" onClick={onAdd}>
+        ＋ 人格を追加
+      </button>
       {visible.length === 0 && <p className="empty">人格がまだ登録されていません</p>}
-      <ul className="item-list">{visible.map(renderRow)}</ul>
+      <SortableList
+        className="item-list"
+        items={visible}
+        onReorder={(ids) => reorderAlters(db, ids)}
+        renderItem={renderRow}
+        getLabel={(alter) => alter.name}
+      />
       {hidden.length > 0 && (
         <>
           <h3 className="hidden-heading">非表示の人格</h3>
-          <ul className="item-list">{hidden.map(renderRow)}</ul>
+          {/* 非表示の一覧は並び替えない */}
+          <ul className="item-list">
+            {hidden.map((alter) => (
+              <li key={alter.id} className="plain-row">
+                {renderRow(alter)}
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </section>

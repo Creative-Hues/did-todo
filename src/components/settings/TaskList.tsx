@@ -1,92 +1,71 @@
-// タスクの設定(一覧+追加・編集)
-import { useState } from 'react';
+// タスクの一覧(並び替え・追加・編集画面を開く)
 import { db } from '../../db/db';
-import { addTask, reorderTasks, setTaskHidden, updateTask, type TaskInput } from '../../db/taskRepo';
+import { reorderTasks } from '../../db/taskRepo';
 import { cycleLabel } from '../../lib/cycleLabel';
 import { sortForSettings } from '../../lib/ordering';
-import { showSaveError } from '../../lib/showError';
 import type { Alter, Task } from '../../lib/types';
-import { ItemRow, swapIds } from './ItemRow';
-import { TaskForm } from './TaskForm';
-
-/** 編集中の状態:なし / 新規追加 / 既存のタスクの編集 */
-type Editing = null | { mode: 'new' } | { mode: 'edit'; task: Task };
+import { SortableList } from '../common/SortableList';
+import { ItemRow } from './ItemRow';
 
 interface Props {
   tasks: Task[];
   alters: Alter[];
+  onAdd: () => void;
+  onOpen: (task: Task) => void;
 }
 
-export function TaskList({ tasks, alters }: Props) {
-  const [editing, setEditing] = useState<Editing>(null);
+export function TaskList({ tasks, alters, onAdd, onOpen }: Props) {
   const { visible, hidden } = sortForSettings(tasks);
-  const selectableAlters = sortForSettings(alters).visible;
   const alterById = new Map(alters.map((alter) => [alter.id, alter]));
 
-  const handleSubmit = async (input: TaskInput) => {
-    try {
-      if (editing?.mode === 'edit') {
-        await updateTask(db, editing.task.id, input);
-      } else {
-        await addTask(db, input, new Date());
-      }
-      setEditing(null);
-    } catch (error) {
-      showSaveError(error);
-    }
-  };
-
-  const renderRow = (task: Task, index: number, list: Task[]) => (
+  const renderRow = (task: Task) => (
     <ItemRow
-      key={task.id}
+      name={task.name}
       hidden={task.hidden}
-      canMoveUp={index > 0}
-      canMoveDown={index < list.length - 1}
-      onMoveUp={() => reorderTasks(db, swapIds(list, index, index - 1)).catch(showSaveError)}
-      onMoveDown={() => reorderTasks(db, swapIds(list, index, index + 1)).catch(showSaveError)}
-      onEdit={() => setEditing({ mode: 'edit', task })}
-      onToggleHidden={() => setTaskHidden(db, task.id, !task.hidden).catch(showSaveError)}
-    >
-      <span className="item-name">{task.name}</span>
-      <span className="item-sub">{cycleLabel(task.cycle)}</span>
-      <span className="alter-labels">
-        {task.careAlterIds.map((id) => {
-          const alter = alterById.get(id);
-          return (
-            alter && (
-              <span key={id} className="alter-label" style={{ backgroundColor: alter.color }}>
-                {alter.name}
-              </span>
-            )
-          );
-        })}
-      </span>
-    </ItemRow>
+      sub={
+        <>
+          <span className="item-sub">{cycleLabel(task.cycle)}</span>
+          {task.careAlterIds.map((id) => {
+            const alter = alterById.get(id);
+            return (
+              alter && (
+                <span key={id} className="alter-label" style={{ backgroundColor: alter.color }}>
+                  {alter.name}
+                </span>
+              )
+            );
+          })}
+        </>
+      }
+      onOpen={() => onOpen(task)}
+    />
   );
 
   return (
     <section className="settings-section">
       <h2>タスク</h2>
-      {editing ? (
-        <TaskForm
-          // 編集対象が変わったら入力欄を作り直す
-          key={editing.mode === 'edit' ? editing.task.id : 'new'}
-          initial={editing.mode === 'edit' ? editing.task : undefined}
-          selectableAlters={selectableAlters}
-          onSubmit={handleSubmit}
-          onCancel={() => setEditing(null)}
-        />
-      ) : (
-        <button type="button" className="add-button" onClick={() => setEditing({ mode: 'new' })}>
-          ＋ タスクを追加
-        </button>
-      )}
+      <button type="button" className="add-button" onClick={onAdd}>
+        ＋ タスクを追加
+      </button>
       {visible.length === 0 && <p className="empty">タスクがまだ登録されていません</p>}
-      <ul className="item-list">{visible.map(renderRow)}</ul>
+      <SortableList
+        className="item-list"
+        items={visible}
+        onReorder={(ids) => reorderTasks(db, ids)}
+        renderItem={renderRow}
+        getLabel={(task) => task.name}
+      />
       {hidden.length > 0 && (
         <>
           <h3 className="hidden-heading">非表示のタスク</h3>
-          <ul className="item-list">{hidden.map(renderRow)}</ul>
+          {/* 非表示の一覧は並び替えない */}
+          <ul className="item-list">
+            {hidden.map((task) => (
+              <li key={task.id} className="plain-row">
+                {renderRow(task)}
+              </li>
+            ))}
+          </ul>
         </>
       )}
     </section>
