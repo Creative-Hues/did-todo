@@ -2,8 +2,8 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// 公開先のパス。GitHub Pages で公開するときは '/リポジトリ名/' に変更する
-const base = '/';
+// GitHub Pages の公開先(https://manami0714.github.io/did-todo/)に合わせる
+const base = '/did-todo/';
 
 export default defineConfig({
   base,
