@@ -150,6 +150,16 @@ input[type='color'] {
   gap: 4px 8px;
 }
 
+/* ホーム画面の並び替えモード:行の区切り線は sortable-row 側で引く */
+.sortable-row .task-item {
+  border-bottom: none;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 8px;
+}
+
 /* 編集画面の非表示/再表示・削除 */
 .edit-actions {
   display: flex;

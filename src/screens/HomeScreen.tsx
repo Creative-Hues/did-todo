@@ -26,10 +26,16 @@ export function HomeScreen({ onOpenSettings }: Props) {
   const records = useLiveQuery(() => db.records.toArray());
   const now = useNow();
   const [modal, setModal] = useState<Modal>(null);
+  // 並び替えモード中か(SPEC.md 5.1)
+  const [reordering, setReordering] = useState(false);
 
   const alterById = new Map((alters ?? []).map((alter) => [alter.id, alter]));
 
   const handleTap = (item: HomeItem, section: HomeSection) => {
+    // 並び替えモード中は記録も取り消しもしない
+    if (reordering) {
+      return;
+    }
     if (item.status === 'done' && item.currentRecord) {
       const label = toCompletionLabel(item.currentRecord, section.key, alterById);
       setModal({ kind: 'undo', task: item.task, labelText: completionLabelText(label) });
@@ -66,7 +72,14 @@ export function HomeScreen({ onOpenSettings }: Props) {
       return <p className="empty">表示するタスクはありません</p>;
     }
     return sections.map((section) => (
-      <TaskSection key={section.key} section={section} alters={alters} alterById={alterById} onTap={handleTap} />
+      <TaskSection
+        key={section.key}
+        section={section}
+        alters={alters}
+        alterById={alterById}
+        reordering={reordering}
+        onTap={handleTap}
+      />
     ));
   };
 
@@ -74,9 +87,14 @@ export function HomeScreen({ onOpenSettings }: Props) {
     <main className="app">
       <header className="screen-header">
         <h1>みんなのToDo</h1>
-        <button type="button" onClick={onOpenSettings}>
-          設定
-        </button>
+        <div className="header-buttons">
+          <button type="button" onClick={() => setReordering((current) => !current)}>
+            {reordering ? '完了' : '並び替え'}
+          </button>
+          <button type="button" onClick={onOpenSettings}>
+            設定
+          </button>
+        </div>
       </header>
       {renderContent()}
       {modal?.kind === 'pick' && (

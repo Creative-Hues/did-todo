@@ -50,6 +50,14 @@ function compareItems(a: HomeItem, b: HomeItem): number {
 }
 
 /**
+ * 並び替えモード用に、欄の中を未完了・完了の区別なく order 順だけで並べ直す(SPEC.md 5.1)。
+ * 欄に入るタスクは buildHomeSections で決めたものから変えない
+ */
+export function sortSectionByOrder(section: HomeSection): HomeSection {
+  return { ...section, items: [...section.items].sort((a, b) => a.task.order - b.task.order) };
+}
+
+/**
  * ホーム画面の欄を作る。
  * - 非表示のタスクと、○日ごとで「お休み」のタスクは入れない
  * - タスクが1つもない欄は返さない

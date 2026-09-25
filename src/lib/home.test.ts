@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildHomeSections } from './home';
+import { buildHomeSections, sortSectionByOrder } from './home';
 import type { CompletionRecord, Cycle, Task } from './types';
 
 /** 2026年のローカル時刻を作る(month は 1〜12) */
@@ -67,6 +67,27 @@ describe('ホーム画面の欄', () => {
   it('タスクが1つもない欄は返さない', () => {
     expect(buildHomeSections([task('weekly', { type: 'weekly' }, 0)], [], now).map((s) => s.key)).toEqual(['week']);
     expect(buildHomeSections([], [], now)).toEqual([]);
+  });
+
+  it('並び替えモードでは、未完了・完了の区別なく order 順に並ぶ', () => {
+    const tasks = [
+      task('doneB', { type: 'daily' }, 3),
+      task('todoB', { type: 'daily' }, 2),
+      task('doneA', { type: 'daily' }, 1),
+      task('todoA', { type: 'daily' }, 0),
+      task('weekly', { type: 'weekly' }, 4),
+    ];
+    const records = [record('doneA', at(9, 25, 9)), record('doneB', at(9, 25, 10))];
+    const [today] = buildHomeSections(tasks, records, now);
+    const sorted = sortSectionByOrder(today);
+    expect(sorted.items.map((i) => [i.task.id, i.status])).toEqual([
+      ['todoA', 'todo'],
+      ['doneA', 'done'],
+      ['todoB', 'todo'],
+      ['doneB', 'done'],
+    ]);
+    // 元の欄は書き換えない
+    expect(today.items.map((i) => i.task.id)).toEqual(['todoA', 'todoB', 'doneA', 'doneB']);
   });
 
   it('削除したタスクの記録が残っていても、ほかのタスクの表示に影響しない', () => {
