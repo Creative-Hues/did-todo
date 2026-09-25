@@ -1,0 +1,318 @@
+/* 最小限のリセット。見た目の調整はフェーズ5で行う */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', sans-serif;
+}
+
+/* iPhone のノッチ(画面上部の切り欠き)などに重ならないよう余白をとる */
+.app {
+  padding: calc(16px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right))
+    calc(16px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
+}
+
+h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+/* ---- フェーズ3:設定画面の最低限のレイアウト(見た目の調整はフェーズ5) ---- */
+
+/* 指で押しやすい大きさ */
+button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0 12px;
+  font-size: 1rem;
+}
+
+input[type='text'] {
+  min-height: 44px;
+  font-size: 1rem; /* 16px 未満だと iPhone で自動ズームされる */
+  padding: 0 8px;
+}
+
+input[type='color'] {
+  width: 64px;
+  height: 44px;
+}
+
+.screen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.settings-section {
+  margin-bottom: 32px;
+}
+
+.settings-section h2 {
+  font-size: 1.25rem;
+  margin: 0 0 12px;
+}
+
+.add-button {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.item-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.item-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 0;
+  border-bottom: 1px solid #ccc;
+}
+
+.item-row--hidden {
+  opacity: 0.6;
+}
+
+.item-row__content {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  min-width: 0;
+}
+
+.item-row__buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.item-name {
+  font-weight: bold;
+}
+
+.item-sub {
+  font-size: 0.875rem;
+}
+
+.color-dot {
+  display: inline-block;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.alter-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.alter-label {
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #fff;
+  font-size: 0.75rem;
+}
+
+.hidden-heading {
+  font-size: 1rem;
+  margin: 20px 0 4px;
+}
+
+.edit-form {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 12px;
+}
+
+.edit-form h3 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 12px;
+  border: none;
+  padding: 0;
+}
+
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.choice input[type='radio'],
+.choice input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+}
+
+.days-input {
+  width: 5em;
+}
+
+.form-error {
+  color: #c00;
+  margin: 0 0 12px;
+}
+
+.form-buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.empty {
+  color: #888;
+}
+
+/* ---- フェーズ4:ホーム画面・記録・取り消しの最低限のレイアウト(見た目の調整はフェーズ5) ---- */
+
+.home-section {
+  margin-bottom: 24px;
+}
+
+.home-section h2 {
+  font-size: 1.25rem;
+  margin: 0 0 8px;
+}
+
+.task-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.task-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  width: 100%;
+  padding: 12px 4px;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+
+/* 完了は薄く表示して、未完了とはっきり区別する */
+.task-item--done {
+  opacity: 0.45;
+}
+
+.task-item__status {
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+.task-item__body {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.task-item__done-by {
+  font-size: 0.875rem;
+  font-weight: bold;
+}
+
+/* シート・確認ダイアログの背景 */
+.overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.overlay--bottom {
+  align-items: flex-end;
+}
+
+.overlay--center {
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.sheet {
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  padding: 16px 16px calc(16px + env(safe-area-inset-bottom));
+  border-radius: 16px 16px 0 0;
+  background: #fff;
+}
+
+.sheet__title {
+  font-size: 1.1rem;
+  margin: 0 0 16px;
+}
+
+/* 誤タップしにくいよう、大きなボタンを間隔をあけて並べる */
+.picker-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.picker-button {
+  min-height: 56px;
+  border: none;
+  border-radius: 12px;
+  color: #fff;
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+.picker-button--unknown {
+  background: #777;
+}
+
+.sheet__cancel {
+  width: 100%;
+  min-height: 52px;
+}
+
+.dialog {
+  width: 100%;
+  max-width: 360px;
+  padding: 20px;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.dialog__message {
+  margin: 0 0 20px;
+}
+
+.dialog__buttons {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.dialog__danger {
+  color: #c00;
+  font-weight: bold;
+}

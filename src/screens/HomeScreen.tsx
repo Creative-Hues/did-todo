@@ -1,0 +1,99 @@
+// ホーム画面(SPEC.md 5.1):今日・今週・今月の欄と、記録・取り消し
+import { useState } from 'react';
+import { AlterPickerSheet } from '../components/home/AlterPickerSheet';
+import { TaskSection } from '../components/home/TaskSection';
+import { UndoDialog } from '../components/home/UndoDialog';
+import { db } from '../db/db';
+import { addRecord, undoCurrentRecord } from '../db/recordRepo';
+import { useLiveQuery } from '../hooks/useLiveQuery';
+import { useNow } from '../hooks/useNow';
+import { completionLabelText, toCompletionLabel } from '../lib/completionLabel';
+import { buildHomeSections, type HomeItem, type HomeSection } from '../lib/home';
+import { sortForSettings } from '../lib/ordering';
+import { showSaveError } from '../lib/showError';
+import type { Task } from '../lib/types';
+
+/** 開いているシート・確認:なし / 人格の選択 / 取り消しの確認 */
+type Modal = null | { kind: 'pick'; task: Task } | { kind: 'undo'; task: Task; labelText: string };
+
+interface Props {
+  onOpenSettings: () => void;
+}
+
+export function HomeScreen({ onOpenSettings }: Props) {
+  const alters = useLiveQuery(() => db.alters.toArray());
+  const tasks = useLiveQuery(() => db.tasks.toArray());
+  const records = useLiveQuery(() => db.records.toArray());
+  const now = useNow();
+  const [modal, setModal] = useState<Modal>(null);
+
+  const alterById = new Map((alters ?? []).map((alter) => [alter.id, alter]));
+
+  const handleTap = (item: HomeItem, section: HomeSection) => {
+    if (item.status === 'done' && item.currentRecord) {
+      const label = toCompletionLabel(item.currentRecord, section.key, alterById);
+      setModal({ kind: 'undo', task: item.task, labelText: completionLabelText(label) });
+    } else {
+      setModal({ kind: 'pick', task: item.task });
+    }
+  };
+
+  // 記録・取り消しの時刻は、ボタンを押した瞬間の時刻を使う
+  const handleSelect = async (task: Task, alterId: string | null) => {
+    try {
+      await addRecord(db, task, alterId, new Date());
+      setModal(null);
+    } catch (error) {
+      showSaveError(error);
+    }
+  };
+
+  const handleUndo = async (task: Task) => {
+    try {
+      await undoCurrentRecord(db, task, new Date());
+      setModal(null);
+    } catch (error) {
+      showSaveError(error);
+    }
+  };
+
+  const renderContent = () => {
+    if (!alters || !tasks || !records) {
+      return <p>読み込み中…</p>;
+    }
+    const sections = buildHomeSections(tasks, records, now);
+    if (sections.length === 0) {
+      return <p className="empty">表示するタスクはありません</p>;
+    }
+    return sections.map((section) => (
+      <TaskSection key={section.key} section={section} alters={alters} alterById={alterById} onTap={handleTap} />
+    ));
+  };
+
+  return (
+    <main className="app">
+      <header className="screen-header">
+        <h1>みんなのToDo</h1>
+        <button type="button" onClick={onOpenSettings}>
+          設定
+        </button>
+      </header>
+      {renderContent()}
+      {modal?.kind === 'pick' && (
+        <AlterPickerSheet
+          task={modal.task}
+          alters={sortForSettings(alters ?? []).visible}
+          onSelect={(alterId) => handleSelect(modal.task, alterId)}
+          onCancel={() => setModal(null)}
+        />
+      )}
+      {modal?.kind === 'undo' && (
+        <UndoDialog
+          labelText={modal.labelText}
+          onConfirm={() => handleUndo(modal.task)}
+          onCancel={() => setModal(null)}
+        />
+      )}
+    </main>
+  );
+}
