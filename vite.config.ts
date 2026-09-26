@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 
-// GitHub Pages の公開先(https://manami0714.github.io/did-todo/)に合わせる
+// GitHub Pages の公開先(https://creative-hues.github.io/did-todo/)に合わせる
 const base = '/did-todo/';
 
 export default defineConfig({
