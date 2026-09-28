@@ -10,6 +10,10 @@ import {
   needsRecount,
   normalizeTimings,
   sortMedications,
+  sortStockLogs,
+  medicationKindLabel,
+  stockLogAmountText,
+  stockText,
 } from './medication';
 import type { Medication, MedicationIntake, MedicationTiming } from './types';
 
@@ -217,5 +221,30 @@ describe('記録の一覧(論理日ごと)', () => {
 
   it('記録がなければ空', () => {
     expect(groupIntakesByLogicalDay([])).toEqual([]);
+  });
+});
+
+describe('表示の文言', () => {
+  it('飲み方:決まった時間は時間帯を決まった順で、頓服は「頓服」', () => {
+    expect(medicationKindLabel(med({ timings: ['bedtime', 'morning'] }))).toBe('決まった時間・朝食後/寝る前');
+    expect(medicationKindLabel(med({ kind: 'asNeeded', timings: [] }))).toBe('頓服');
+  });
+
+  it('残り:決まった時間は「残り14錠・あと7日分」、頓服は「残り○錠」', () => {
+    expect(stockText(med({ remaining: 14 }))).toBe('残り14錠・あと7日分');
+    expect(stockText(med({ remaining: 13.5 }))).toBe('残り13.5錠・あと6日分');
+    expect(stockText(med({ kind: 'asNeeded', timings: [], remaining: 3 }))).toBe('残り3錠');
+  });
+
+  it('在庫の履歴:補充は「+」を付け、新しい順に並べる', () => {
+    expect(stockLogAmountText({ kind: 'refill', amount: 28 })).toBe('+28錠');
+    expect(stockLogAmountText({ kind: 'recount', amount: 29.5 })).toBe('29.5錠');
+    expect(stockLogAmountText({ kind: 'initial', amount: 14 })).toBe('14錠');
+    const logs = sortStockLogs([
+      { id: 'a', medicationId: 'm', kind: 'initial', amount: 1, at: at(9, 1).toISOString() },
+      { id: 'b', medicationId: 'm', kind: 'refill', amount: 1, at: at(9, 20).toISOString() },
+      { id: 'c', medicationId: 'm', kind: 'recount', amount: 1, at: at(9, 10).toISOString() },
+    ]);
+    expect(logs.map((log) => log.id)).toEqual(['b', 'c', 'a']);
   });
 });

@@ -29,3 +29,13 @@ export function parseTabletCount(input: string, min: number): number | null {
   const count = Number(trimmed);
   return Number.isFinite(count) && Number.isInteger(count * 2) && count >= min ? count : null;
 }
+
+/** 1回の錠数を読み取る(0.5錠単位で0.5以上。SPEC.md 7.1)。だめなら null */
+export function parseDosePerTake(input: string): number | null {
+  return parseTabletCount(input, 0.5);
+}
+
+/** 残り・補充・数え直しの錠数を読み取る(0.5錠単位で0以上。SPEC.md 7.1・7.2)。だめなら null */
+export function parseStockCount(input: string): number | null {
+  return parseTabletCount(input, 0);
+}

@@ -1,7 +1,7 @@
 // 服薬の計算(SPEC.md 7章)。すべて純粋関数(同じ入力なら同じ結果)。
 // 日付の計算は period.ts の関数を通す。現在時刻は引数で受け取る。
 import { addLogicalDays, startOfLogicalDate, toLogicalDate, type LogicalDate } from './period';
-import type { Medication, MedicationIntake, MedicationTiming } from './types';
+import type { Medication, MedicationIntake, MedicationTiming, StockLog } from './types';
 
 /** 時間帯の並び順(画面の上から) */
 export const TIMINGS: readonly MedicationTiming[] = ['morning', 'noon', 'evening', 'bedtime'];
@@ -192,4 +192,43 @@ export function groupIntakesByLogicalDay(intakes: readonly MedicationIntake[]): 
     return { logicalDate, entries };
   });
   return days.sort((a, b) => b.logicalDate.localeCompare(a.logicalDate));
+}
+
+/** 錠数の表示(「14」「0.5」「13.5」) */
+export function formatTablets(count: number): string {
+  return String(count);
+}
+
+/** 飲み方の表示(「決まった時間・朝食後/寝る前」「頓服」) */
+export function medicationKindLabel(medication: Pick<Medication, 'kind' | 'timings'>): string {
+  if (medication.kind === 'asNeeded') {
+    return '頓服';
+  }
+  const timings = normalizeTimings(medication.timings).map((timing) => TIMING_LABELS[timing]);
+  return timings.length > 0 ? `決まった時間・${timings.join('/')}` : '決まった時間';
+}
+
+/** 残りの表示(決まった時間:「残り14錠・あと7日分」、頓服:「残り14錠」。SPEC.md 7.3) */
+export function stockText(medication: Pick<Medication, 'kind' | 'dosePerTake' | 'timings' | 'remaining'>): string {
+  const remaining = `残り${formatTablets(medication.remaining)}錠`;
+  const days = daysLeft(medication);
+  return days === null ? remaining : `${remaining}・あと${days}日分`;
+}
+
+/** 在庫の履歴の種類の表示名 */
+export const STOCK_LOG_LABELS: Record<StockLog['kind'], string> = {
+  initial: '登録',
+  refill: '補充',
+  recount: '数え直し',
+};
+
+/** 在庫の履歴の中身の表示(補充は「+28錠」、登録・数え直しは「14錠」) */
+export function stockLogAmountText(log: Pick<StockLog, 'kind' | 'amount'>): string {
+  const amount = `${formatTablets(log.amount)}錠`;
+  return log.kind === 'refill' ? `+${amount}` : amount;
+}
+
+/** 在庫の履歴を新しい順に並べる */
+export function sortStockLogs(logs: readonly StockLog[]): StockLog[] {
+  return [...logs].sort((a, b) => b.at.localeCompare(a.at));
 }

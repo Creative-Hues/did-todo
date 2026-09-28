@@ -525,3 +525,66 @@ body {
   border-bottom: 1px solid #ccc;
   background: #fff;
 }
+
+/* ---- フェーズ9:服薬 ---- */
+
+/* 薬の編集画面の「残りの錠数」 */
+.stock-panel {
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid #ccc;
+}
+
+.stock-panel h2 {
+  font-size: 1.25rem;
+  margin: 0 0 8px;
+}
+
+.stock-text {
+  margin: 0 0 8px;
+  font-weight: bold;
+}
+
+/* あと7日分以下(SPEC.md 7.3「目立つ色」) */
+.stock-text--low {
+  color: #b35900;
+}
+
+/* 残りが1回分未満 */
+.stock-notice {
+  margin: 0 0 8px;
+  color: #b35900;
+  font-weight: bold;
+}
+
+.stock-form {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.stock-form__label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.stock-log-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stock-log {
+  display: flex;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid #ccc;
+  font-size: 0.875rem;
+}
+
+.stock-log__at {
+  color: #888;
+}

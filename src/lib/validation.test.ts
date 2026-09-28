@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeName, parseEveryNDays, parseTabletCount } from './validation';
+import { normalizeName, parseDosePerTake, parseEveryNDays, parseStockCount, parseTabletCount } from './validation';
 
 describe('名前のチェック', () => {
   it('前後の空白を取り除く', () => {
@@ -50,5 +50,27 @@ describe('錠数のチェック', () => {
     expect(parseTabletCount('', 0)).toBeNull();
     expect(parseTabletCount('.5', 0)).toBeNull();
     expect(parseTabletCount('abc', 0)).toBeNull();
+  });
+});
+
+describe('薬の錠数の入力チェック', () => {
+  it('0.5錠単位でない数(例:1.3)は、どの入力欄でもはじかれる', () => {
+    expect(parseDosePerTake('1.3')).toBeNull();
+    expect(parseStockCount('1.3')).toBeNull();
+    expect(parseStockCount('10.7')).toBeNull();
+  });
+
+  it('1回の錠数は0.5以上', () => {
+    expect(parseDosePerTake('0.5')).toBe(0.5);
+    expect(parseDosePerTake('1.5')).toBe(1.5);
+    expect(parseDosePerTake('0')).toBeNull();
+    expect(parseDosePerTake('0.0')).toBeNull();
+  });
+
+  it('残り・補充・数え直しは0以上', () => {
+    expect(parseStockCount('0')).toBe(0);
+    expect(parseStockCount('0.5')).toBe(0.5);
+    expect(parseStockCount('28')).toBe(28);
+    expect(parseStockCount('-0.5')).toBeNull();
   });
 });
