@@ -722,11 +722,26 @@ textarea {
   border-bottom: 1px solid #ccc;
 }
 
+/* 「話した」のチェックボックスと、その下の小さな「話した」。
+   2つを合わせて押せる範囲にし、指で押しやすいよう縦横 44px 以上にする(SPEC.md 8.2) */
 .note-item__check {
   flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  min-width: 52px;
+  min-height: 56px;
+  padding: 10px 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.note-item__check input {
   width: 24px;
   height: 24px;
-  margin: 14px 4px 0;
+  margin: 0;
 }
 
 .note-item__body {

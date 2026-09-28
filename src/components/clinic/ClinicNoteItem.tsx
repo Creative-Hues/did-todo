@@ -20,13 +20,15 @@ export function ClinicNoteItem({ note, alterById, categoryById, onToggleDiscusse
 
   return (
     <div className="note-item">
-      <input
-        type="checkbox"
-        className="note-item__check"
-        aria-label="話した"
-        checked={note.discussedAt !== null}
-        onChange={(event) => onToggleDiscussed(note, event.target.checked)}
-      />
+      {/* 何のチェックかわかるよう、下に「話した」と出す。文字を押しても切り替わる(SPEC.md 8.2) */}
+      <label className="note-item__check">
+        <input
+          type="checkbox"
+          checked={note.discussedAt !== null}
+          onChange={(event) => onToggleDiscussed(note, event.target.checked)}
+        />
+        <span>話した</span>
+      </label>
       <button type="button" className="note-item__body" onClick={() => onOpen(note)}>
         <span className="note-item__meta">
           <span className="item-name" style={author.color ? { color: author.color } : undefined}>
