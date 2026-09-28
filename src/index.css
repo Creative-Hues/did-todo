@@ -973,6 +973,158 @@ textarea {
   margin-bottom: 16px;
 }
 
+/* 人格ごとのページのカード(タップで編集画面。SPEC.md 10.3) */
+.info-card {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+
+.info-card__chevron {
+  margin-left: auto;
+  color: #888;
+  font-size: 1.25rem;
+}
+
+/* 名前・色・区分のカード */
+.alter-card__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.alter-card__category {
+  flex-shrink: 0;
+  font-size: 0.875rem;
+  color: #888;
+}
+
+/* 「基本情報」の見出しと、横の小さな説明 */
+.section-heading__note {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  font-weight: normal;
+  color: #888;
+}
+
+/* 基本情報の一覧(左に項目名、右に中身) */
+.basic-info {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+}
+
+.basic-info__row {
+  display: flex;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.basic-info__row dt {
+  flex: 0 0 5.5em;
+  color: #888;
+  font-size: 0.875rem;
+}
+
+.basic-info__row dd {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  white-space: pre-wrap; /* 見分け方の改行をそのまま出す */
+  overflow-wrap: anywhere;
+}
+
+/* プロフィールの見出しの1件:カードと、カードの外の切り替えボタンを横に並べる(SPEC.md 10.4) */
+.profile-list .sortable-row {
+  align-items: center;
+  border-bottom: none;
+}
+
+.profile-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+}
+
+.profile-card {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+
+.profile-card__title {
+  font-weight: bold;
+}
+
+.profile-card__body {
+  white-space: pre-wrap; /* 改行をそのまま出す */
+  overflow-wrap: anywhere;
+  font-size: 0.9375rem;
+}
+
+/* 「PDFに入れる」は色つき、「自分たちだけ」は鍵マーク付きの灰色 */
+.pdf-toggle {
+  flex: 0 0 6.5em;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 6px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: bold;
+  line-height: 1.3;
+}
+
+/* 文字の上のアイコン(書類・鍵) */
+.pdf-toggle__icon {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+/* 1行ずつ。行の途中では折り返さない */
+.pdf-toggle__line {
+  white-space: nowrap;
+}
+
+.pdf-toggle--on {
+  border: 2px solid #1f6fd1;
+  background: #1f6fd1;
+  color: #fff;
+}
+
+.pdf-toggle--off {
+  border: 2px solid #999;
+  background: #e6e6e6;
+  color: #555;
+}
+
+.profile-add {
+  margin-top: 8px;
+}
+
 /* 区分の名前の見出し */
 .alter-group__heading {
   font-size: 0.9375rem;

@@ -22,9 +22,13 @@ interface Props {
   alter?: Alter;
   categories: AlterCategory[];
   onBack: () => void;
+  /** 追加したとき(その人格のページを開く。SPEC.md 10.1) */
+  onAdded: (added: Alter) => void;
+  /** 削除したとき(人格のページはもうないので、一覧に戻る) */
+  onDeleted: () => void;
 }
 
-export function AlterEditScreen({ alter, categories, onBack }: Props) {
+export function AlterEditScreen({ alter, categories, onBack, onAdded, onDeleted }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // 完了記録・服薬記録・受診メモ・コメントの件数(1件以上あると削除できない。SPEC.md 3.1)
   const recordCount = useLiveQuery(
@@ -41,10 +45,10 @@ export function AlterEditScreen({ alter, categories, onBack }: Props) {
     try {
       if (alter) {
         await updateAlter(db, alter.id, input);
+        onBack();
       } else {
-        await addAlter(db, input, new Date());
+        onAdded(await addAlter(db, input, new Date()));
       }
-      onBack();
     } catch (error) {
       showSaveError(error);
     }
@@ -65,7 +69,7 @@ export function AlterEditScreen({ alter, categories, onBack }: Props) {
       setConfirmingDelete(false);
       // 確認中に記録が増えて削除できなかった場合は、この画面に残って理由を表示する
       if (deleted) {
-        onBack();
+        onDeleted();
       }
     } catch (error) {
       showSaveError(error);
