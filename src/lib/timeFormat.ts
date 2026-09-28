@@ -33,6 +33,23 @@ export function formatDateTime(iso: string): string {
 }
 
 /**
+ * 前回からの経過時間(SPEC.md 7.5)。どれも切り捨て。
+ * 1時間未満は「25分前」、24時間未満は「3時間前」、それ以上は「2日前」
+ * @param now 現在時刻(未来の記録は「0分前」として扱う)
+ */
+export function formatElapsed(fromIso: string, now: Date): string {
+  const minutes = Math.max(0, Math.floor((now.getTime() - new Date(fromIso).getTime()) / 60_000));
+  if (minutes < 60) {
+    return `${minutes}分前`;
+  }
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) {
+    return `${hours}時間前`;
+  }
+  return `${Math.floor(hours / 24)}日前`;
+}
+
+/**
  * 完了時刻を欄に合わせた形式で表す。
  * - 今日:「9:12」
  * - 今週:「水 9:12」

@@ -52,3 +52,41 @@ describe('1年より古い記録の削除', () => {
     expect(await database.records.count()).toBe(1);
   });
 });
+
+describe('1年より古い服薬記録・在庫の履歴の削除', () => {
+  let database: AppDatabase;
+  const now = new Date(2026, 8, 25, 10, 0);
+  const old = new Date(2025, 8, 25, 9, 59).toISOString(); // 境界の1分前 → 削除
+  const boundary = new Date(2025, 8, 25, 10, 0).toISOString(); // 境界ちょうど → 残す
+
+  beforeEach(() => {
+    database = new AppDatabase('did-todo-test-retention-medication');
+  });
+
+  afterEach(async () => {
+    await database.delete();
+  });
+
+  it('服薬記録と在庫の履歴も、1年より古いものだけが削除される', async () => {
+    const intakeOf = (id: string, takenAt: string) => ({
+      id,
+      medicationId: 'med-1',
+      alterId: null,
+      takenAt,
+      timing: null,
+      deducted: 1,
+      reason: '',
+    });
+    await database.medicationIntakes.bulkAdd([intakeOf('i-old', old), intakeOf('i-new', boundary)]);
+    await database.stockLogs.bulkAdd([
+      { id: 's-old', medicationId: 'med-1', kind: 'initial', amount: 10, at: old },
+      { id: 's-new', medicationId: 'med-1', kind: 'refill', amount: 10, at: boundary },
+    ]);
+    await database.records.add(record('r-old', new Date(old)));
+
+    expect(await deleteExpiredRecords(database, now)).toBe(3);
+    expect((await database.medicationIntakes.toArray()).map((i) => i.id)).toEqual(['i-new']);
+    expect((await database.stockLogs.toArray()).map((s) => s.id)).toEqual(['s-new']);
+    expect(await database.records.count()).toBe(0);
+  });
+});

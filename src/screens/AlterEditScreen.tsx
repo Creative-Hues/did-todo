@@ -16,7 +16,7 @@ interface Props {
 
 export function AlterEditScreen({ alter, onBack }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
-  // 完了記録の件数(1件以上あると削除できない。SPEC.md 3.1)
+  // 完了記録と服薬記録の件数(1件以上あると削除できない。SPEC.md 3.1)
   const recordCount = useLiveQuery(
     () => (alter ? countAlterRecords(db, alter.id) : Promise.resolve(0)),
     [alter?.id],
@@ -81,7 +81,7 @@ export function AlterEditScreen({ alter, onBack }: Props) {
             この人格を削除する
           </button>
           {recordCount !== undefined && recordCount > 0 && (
-            <p className="edit-actions__note">完了記録があるため削除できません。非表示にはできます。</p>
+            <p className="edit-actions__note">完了記録または服薬記録があるため削除できません。非表示にはできます。</p>
           )}
         </section>
       )}

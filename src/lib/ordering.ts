@@ -7,6 +7,9 @@ export interface Orderable {
   order: number;
 }
 
+/** 並び順だけを持つ項目(並べ替え・追加の計算用。薬のように hidden がないものにも使う) */
+export type OrderOnly = Pick<Orderable, 'id' | 'order'>;
+
 /** order の変更内容 */
 export interface OrderChange {
   id: string;
@@ -32,7 +35,7 @@ export function sortForSettings<T extends Orderable>(items: readonly T[]): { vis
  * @param orderedIds 並べ替えた後の順番に並んだID(見つからないIDは無視する)
  * @returns order が変わる項目だけ
  */
-export function reorderSubset(items: readonly Orderable[], orderedIds: readonly string[]): OrderChange[] {
+export function reorderSubset(items: readonly OrderOnly[], orderedIds: readonly string[]): OrderChange[] {
   const byId = new Map(items.map((item) => [item.id, item]));
   const targets = [...new Set(orderedIds)].flatMap((id) => {
     const item = byId.get(id);
@@ -45,6 +48,6 @@ export function reorderSubset(items: readonly Orderable[], orderedIds: readonly 
 }
 
 /** 新しく追加する項目の order(いちばん最後) */
-export function nextOrder(items: readonly Orderable[]): number {
+export function nextOrder(items: readonly OrderOnly[]): number {
   return items.reduce((max, item) => Math.max(max, item.order + 1), 0);
 }

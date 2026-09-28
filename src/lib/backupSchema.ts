@@ -135,7 +135,7 @@ const medicationIntakeSchema: Schema<MedicationIntake> = {
 const stockLogSchema: Schema<StockLog> = {
   id: isString,
   medicationId: isString,
-  kind: oneOf('refill', 'recount'),
+  kind: oneOf('initial', 'refill', 'recount'),
   amount: isNumber,
   at: isString,
 };

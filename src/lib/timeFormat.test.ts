@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCompletionTime } from './timeFormat';
+import { formatCompletionTime, formatElapsed } from './timeFormat';
 
 /** 2026年のローカル時刻を ISO 形式で作る(month は 1〜12) */
 function iso(month: number, day: number, hour: number, minute: number): string {
@@ -30,5 +30,31 @@ describe('完了時刻の表示', () => {
     expect(formatCompletionTime(iso(9, 24, 2, 30), 'week')).toBe('木 2:30');
     // 10/1 2:30 は論理日では 9/30 だが、表示は 10/1
     expect(formatCompletionTime(iso(10, 1, 2, 30), 'month')).toBe('10/1 2:30');
+  });
+});
+
+describe('前回からの経過時間', () => {
+  const now = new Date(2026, 8, 28, 12, 0);
+  const minutesAgo = (minutes: number) => new Date(now.getTime() - minutes * 60_000).toISOString();
+
+  it('1時間未満は「○分前」(切り捨て)', () => {
+    expect(formatElapsed(minutesAgo(0), now)).toBe('0分前');
+    expect(formatElapsed(new Date(now.getTime() - 25 * 60_000 - 59_000).toISOString(), now)).toBe('25分前');
+    expect(formatElapsed(minutesAgo(59), now)).toBe('59分前');
+  });
+
+  it('24時間未満は「○時間前」(切り捨て)', () => {
+    expect(formatElapsed(minutesAgo(60), now)).toBe('1時間前');
+    expect(formatElapsed(minutesAgo(3 * 60 + 59), now)).toBe('3時間前');
+    expect(formatElapsed(minutesAgo(24 * 60 - 1), now)).toBe('23時間前');
+  });
+
+  it('24時間以上は「○日前」(切り捨て)', () => {
+    expect(formatElapsed(minutesAgo(24 * 60), now)).toBe('1日前');
+    expect(formatElapsed(minutesAgo(2 * 24 * 60 + 23 * 60), now)).toBe('2日前');
+  });
+
+  it('未来の記録は「0分前」として扱う', () => {
+    expect(formatElapsed(minutesAgo(-10), now)).toBe('0分前');
   });
 });

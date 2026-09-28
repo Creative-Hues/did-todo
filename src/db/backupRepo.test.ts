@@ -90,7 +90,11 @@ function fullData(): BackupData {
         reason: '',
       },
     ],
-    stockLogs: [{ id: 's1', medicationId: 'med-1', kind: 'refill', amount: 14, at: createdAt }],
+    stockLogs: [
+      { id: 's0', medicationId: 'med-1', kind: 'initial', amount: 10, at: createdAt },
+      { id: 's1', medicationId: 'med-1', kind: 'refill', amount: 14, at: createdAt },
+      { id: 's2', medicationId: 'med-1', kind: 'recount', amount: 13.5, at: createdAt },
+    ],
     clinicNotes: [
       {
         id: 'n1',

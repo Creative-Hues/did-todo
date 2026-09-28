@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeName, parseEveryNDays } from './validation';
+import { normalizeName, parseEveryNDays, parseTabletCount } from './validation';
 
 describe('名前のチェック', () => {
   it('前後の空白を取り除く', () => {
@@ -26,5 +26,29 @@ describe('「○日ごと」の日数のチェック', () => {
     expect(parseEveryNDays('2.5')).toBeNull();
     expect(parseEveryNDays('')).toBeNull();
     expect(parseEveryNDays('abc')).toBeNull();
+  });
+});
+
+describe('錠数のチェック', () => {
+  it('0.5錠単位の数は受け付ける', () => {
+    expect(parseTabletCount('1', 0.5)).toBe(1);
+    expect(parseTabletCount(' 0.5 ', 0.5)).toBe(0.5);
+    expect(parseTabletCount('2.5', 0)).toBe(2.5);
+    expect(parseTabletCount('14.0', 0)).toBe(14);
+  });
+
+  it('最小値より小さい数は null になる', () => {
+    expect(parseTabletCount('0', 0.5)).toBeNull();
+    expect(parseTabletCount('0', 0)).toBe(0);
+  });
+
+  it('0.5錠単位でない数や、数でない入力は null になる', () => {
+    expect(parseTabletCount('0.3', 0)).toBeNull();
+    expect(parseTabletCount('1.25', 0)).toBeNull();
+    expect(parseTabletCount('-1', 0)).toBeNull();
+    expect(parseTabletCount('1/2', 0)).toBeNull();
+    expect(parseTabletCount('', 0)).toBeNull();
+    expect(parseTabletCount('.5', 0)).toBeNull();
+    expect(parseTabletCount('abc', 0)).toBeNull();
   });
 });

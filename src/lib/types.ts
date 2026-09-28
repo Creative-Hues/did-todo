@@ -118,13 +118,13 @@ export interface MedicationIntake {
   reason: string;
 }
 
-/** 在庫の履歴(補充・数え直し。SPEC.md 7.2) */
+/** 在庫の履歴(登録・補充・数え直し。SPEC.md 7.2) */
 export interface StockLog {
   id: string;
   medicationId: string;
-  /** 補充 / 数え直し */
-  kind: 'refill' | 'recount';
-  /** 補充ならもらってきた錠数、数え直しなら数えた錠数 */
+  /** 登録 / 補充 / 数え直し */
+  kind: 'initial' | 'refill' | 'recount';
+  /** 登録なら登録したときの錠数、補充ならもらってきた錠数、数え直しなら数えた錠数 */
   amount: number;
   /** 操作した日時(ISO形式) */
   at: string;

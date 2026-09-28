@@ -51,17 +51,22 @@ export async function reorderAlters(database: AppDatabase, orderedIds: readonly 
   });
 }
 
-/** その人格の完了記録の件数(記録は1年分だけなので、全件を見て数える) */
+/** その人格の完了記録と服薬記録の件数の合計(記録は1年分だけなので、全件を見て数える) */
 export async function countAlterRecords(database: AppDatabase, id: string): Promise<number> {
-  return database.records.filter((record) => record.alterId === id).count();
+  const [records, intakes] = await Promise.all([
+    database.records.filter((record) => record.alterId === id).count(),
+    database.medicationIntakes.filter((intake) => intake.alterId === id).count(),
+  ]);
+  return records + intakes;
 }
 
 /**
  * 人格を削除し、すべてのタスクの「気にしている人格」からも外す。
- * 完了記録が1件でもある人格は削除せず false を返す(削除したら true)
+ * 完了記録か服薬記録が1件でもある人格は削除せず false を返す(削除したら true。SPEC.md 3.1)
  */
 export async function deleteAlter(database: AppDatabase, id: string): Promise<boolean> {
-  return database.transaction('rw', [database.alters, database.tasks, database.records], async () => {
+  const tables = [database.alters, database.tasks, database.records, database.medicationIntakes];
+  return database.transaction('rw', tables, async () => {
     if ((await countAlterRecords(database, id)) > 0) {
       return false;
     }
