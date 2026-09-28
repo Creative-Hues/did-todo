@@ -12,7 +12,6 @@ import { recordAsNeededIntake, recordScheduledIntakes, undoScheduledIntakes } fr
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { useNow } from '../hooks/useNow';
 import {
-  TIMING_LABELS,
   buildTimingSections,
   findLastAsNeeded,
   intakeLabelText,
@@ -22,12 +21,12 @@ import {
 import { sortForSettings } from '../lib/ordering';
 import { toLogicalDate } from '../lib/period';
 import { showSaveError } from '../lib/showError';
-import type { Medication, MedicationTiming } from '../lib/types';
+import type { Medication, MedicationTiming, MedicationTimingId } from '../lib/types';
 
 /** 開いているシート・確認:なし / 時間帯の記録 / 時間帯の取り消しの確認 / 頓服の記録 */
 type Modal =
   | null
-  | { kind: 'scheduled'; timing: MedicationTiming }
+  | { kind: 'scheduled'; timingId: MedicationTimingId }
   | { kind: 'undo'; timing: MedicationTiming; labelText: string }
   | { kind: 'asNeeded'; medicationId: string };
 
@@ -40,12 +39,13 @@ export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
   const alters = useLiveQuery(() => db.alters.toArray());
   const medications = useLiveQuery(() => db.medications.toArray());
   const intakes = useLiveQuery(() => db.medicationIntakes.toArray());
+  const timings = useLiveQuery(() => db.medicationTimings.toArray());
   const now = useNow();
   const [modal, setModal] = useState<Modal>(null);
 
   const alterById = new Map((alters ?? []).map((alter) => [alter.id, alter]));
   const pickerAlters = sortForSettings(alters ?? []).visible;
-  const sections = medications && intakes ? buildTimingSections(medications, intakes, now) : [];
+  const sections = medications && timings && intakes ? buildTimingSections(medications, timings, intakes, now) : [];
   const asNeeded = sortMedications(medications ?? []).active.filter((m) => m.kind === 'asNeeded');
 
   const handleTapSection = (section: TimingSection) => {
@@ -56,12 +56,16 @@ export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
         labelText: intakeLabelText(section.latestToday, alterById),
       });
     } else {
-      setModal({ kind: 'scheduled', timing: section.timing });
+      setModal({ kind: 'scheduled', timingId: section.timing.id });
     }
   };
 
   // 記録・取り消しの時刻は、ボタンを押した瞬間の時刻を使う
-  const handleRecordScheduled = async (timing: MedicationTiming, medicationIds: string[], alterId: string | null) => {
+  const handleRecordScheduled = async (
+    timing: MedicationTimingId,
+    medicationIds: string[],
+    alterId: string | null,
+  ) => {
     try {
       // 別の人格が先に記録していたときは記録されない(null)。どちらでもシートは閉じる
       await recordScheduledIntakes(db, timing, medicationIds, alterId, new Date());
@@ -71,7 +75,7 @@ export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
     }
   };
 
-  const handleUndoScheduled = async (timing: MedicationTiming) => {
+  const handleUndoScheduled = async (timing: MedicationTimingId) => {
     try {
       await undoScheduledIntakes(db, timing, toLogicalDate(new Date()));
       setModal(null);
@@ -90,7 +94,7 @@ export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
   };
 
   const renderContent = () => {
-    if (!alters || !medications || !intakes) {
+    if (!alters || !medications || !timings || !intakes) {
       return <p>読み込み中…</p>;
     }
     if (sections.length === 0 && asNeeded.length === 0) {
@@ -99,8 +103,8 @@ export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
     return (
       <>
         {sections.map((section) => (
-          <section key={section.timing} className="home-section">
-            <h2>{TIMING_LABELS[section.timing]}</h2>
+          <section key={section.timing.id} className="home-section">
+            <h2>{section.timing.name}</h2>
             <TimingSectionItem section={section} alterById={alterById} onTap={handleTapSection} />
           </section>
         ))}
@@ -128,7 +132,7 @@ export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
 
   // シートを開いている間に薬が中止・削除されたら、シートを出さない
   const scheduledSection =
-    modal?.kind === 'scheduled' ? sections.find((section) => section.timing === modal.timing) : undefined;
+    modal?.kind === 'scheduled' ? sections.find((section) => section.timing.id === modal.timingId) : undefined;
   const asNeededMedication =
     modal?.kind === 'asNeeded' ? asNeeded.find((medication) => medication.id === modal.medicationId) : undefined;
 
@@ -151,15 +155,17 @@ export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
           timing={scheduledSection.timing}
           medications={scheduledSection.medications}
           alters={pickerAlters}
-          onSelect={(medicationIds, alterId) => handleRecordScheduled(scheduledSection.timing, medicationIds, alterId)}
+          onSelect={(medicationIds, alterId) =>
+            handleRecordScheduled(scheduledSection.timing.id, medicationIds, alterId)
+          }
           onCancel={() => setModal(null)}
         />
       )}
       {modal?.kind === 'undo' && (
         <ConfirmDialog
-          message={`${TIMING_LABELS[modal.timing]}の「${modal.labelText}」の記録を取り消しますか?この時間帯の薬の記録がまとめて取り消され、残りの錠数も戻ります。`}
+          message={`${modal.timing.name}の「${modal.labelText}」の記録を取り消しますか?この時間帯の薬の記録がまとめて取り消され、残りの錠数も戻ります。`}
           confirmLabel="取り消す"
-          onConfirm={() => handleUndoScheduled(modal.timing)}
+          onConfirm={() => handleUndoScheduled(modal.timing.id)}
           onCancel={() => setModal(null)}
         />
       )}

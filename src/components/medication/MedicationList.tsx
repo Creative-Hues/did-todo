@@ -3,17 +3,19 @@
 import { db } from '../../db/db';
 import { reorderMedications } from '../../db/medicationRepo';
 import { medicationKindLabel, sortMedications, stockText } from '../../lib/medication';
-import type { Medication } from '../../lib/types';
+import type { Medication, MedicationTiming } from '../../lib/types';
 import { SortableList } from '../common/SortableList';
 import { ItemRow } from '../settings/ItemRow';
 
 interface Props {
   medications: Medication[];
+  /** 時間帯の一覧(非表示のものも含む。飲み方の表示に使う) */
+  timingList: MedicationTiming[];
   onAdd: () => void;
   onOpen: (medication: Medication) => void;
 }
 
-export function MedicationList({ medications, onAdd, onOpen }: Props) {
+export function MedicationList({ medications, timingList, onAdd, onOpen }: Props) {
   const { active, stopped } = sortMedications(medications);
 
   const renderRow = (medication: Medication) => (
@@ -22,7 +24,7 @@ export function MedicationList({ medications, onAdd, onOpen }: Props) {
       hidden={medication.status === 'stopped'}
       sub={
         <>
-          <span className="item-sub">{medicationKindLabel(medication)}</span>
+          <span className="item-sub">{medicationKindLabel(medication, timingList)}</span>
           <span className="item-sub">{stockText(medication)}</span>
         </>
       }

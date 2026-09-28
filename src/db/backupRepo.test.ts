@@ -5,6 +5,7 @@ import { AppDatabase } from './db';
 import { getLastExportedAt, readAllData, replaceAllData, setLastExportedAt } from './backupRepo';
 import { buildBackup, parseBackup, serializeBackup, type BackupData } from '../lib/backup';
 import { BACKUP_TABLE_NAMES } from '../lib/backupSchema';
+import { buildInitialMedicationTimings } from '../lib/medicationTimings';
 
 const now = new Date(2026, 8, 28, 21, 30);
 
@@ -66,12 +67,17 @@ function fullData(): BackupData {
         careAlterIdsAtCompletion: ['alter-a'],
       },
     ],
+    medicationTimings: [
+      ...buildInitialMedicationTimings(createdAt),
+      // 自分で追加した時間帯(非表示)
+      { id: 'custom-1', name: '朝食前', hidden: true, order: 4, createdAt },
+    ],
     medications: [
       {
         id: 'med-1',
         name: '薬A',
         kind: 'scheduled',
-        timings: ['morning', 'bedtime'],
+        timings: ['custom-1', 'morning', 'bedtime'],
         dosePerTake: 0.5,
         remaining: 13.5,
         status: 'active',

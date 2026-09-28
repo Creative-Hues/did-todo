@@ -65,7 +65,7 @@ export function parseBackup(text: string): ParseBackupResult {
   if (typeof exportedAt !== 'string' || Number.isNaN(Date.parse(exportedAt))) {
     return { ok: false, reason: '書き出した日時が正しくありません' };
   }
-  const parsed = parseBackupData(data);
+  const parsed = parseBackupData(data, exportedAt);
   if (typeof parsed === 'string') {
     return { ok: false, reason: parsed };
   }

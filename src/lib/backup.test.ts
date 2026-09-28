@@ -9,6 +9,7 @@ import {
   serializeBackup,
   type BackupData,
 } from './backup';
+import { buildInitialMedicationTimings } from './medicationTimings';
 
 function emptyData(): BackupData {
   return {
@@ -17,6 +18,7 @@ function emptyData(): BackupData {
     profileSections: [],
     tasks: [],
     records: [],
+    medicationTimings: [],
     medications: [],
     medicationIntakes: [],
     stockLogs: [],
@@ -131,6 +133,87 @@ describe('バックアップの読み取り', () => {
     (json.data as Record<string, unknown>).categories = [{ id: 'c', name: '主人格', order: 0, createdAt: '', extra: 1 }];
     const result = parseBackup(JSON.stringify(json));
     expect(result.ok && result.backup.data.categories).toEqual([{ id: 'c', name: '主人格', order: 0, createdAt: '' }]);
+  });
+});
+
+describe('服薬の時間帯(フェーズ9段階Eで追加。SPEC.md 12章)', () => {
+  /** 最初の4つの時間帯を使う薬と服薬記録が入ったデータ */
+  function dataWithMedication(): BackupData {
+    const data = emptyData();
+    data.medicationTimings = buildInitialMedicationTimings('2026-09-01T00:00:00.000Z');
+    data.medications.push({
+      id: 'med-1',
+      name: '薬A',
+      kind: 'scheduled',
+      timings: ['morning', 'bedtime'],
+      dosePerTake: 1,
+      remaining: 14,
+      status: 'active',
+      order: 0,
+      createdAt: '2026-09-01T00:00:00.000Z',
+    });
+    data.medicationIntakes.push({
+      id: 'i1',
+      medicationId: 'med-1',
+      alterId: null,
+      takenAt: '2026-09-27T12:00:00.000Z',
+      timing: 'bedtime',
+      deducted: 1,
+      reason: '',
+    });
+    return data;
+  }
+
+  it('時間帯の一覧がない古いファイルは、最初の4つが入っているものとして読み込む(作成日時は書き出した日時)', () => {
+    const json = exportedJson(dataWithMedication());
+    delete (json.data as Record<string, unknown>).medicationTimings;
+    const result = parseBackup(JSON.stringify(json));
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    expect(result.backup.data.medicationTimings).toEqual(buildInitialMedicationTimings(now.toISOString()));
+    expect(result.backup.data.medicationTimings.map((t) => [t.id, t.name, t.order, t.hidden])).toEqual([
+      ['morning', '朝食後', 0, false],
+      ['noon', '昼食後', 1, false],
+      ['evening', '夕食後', 2, false],
+      ['bedtime', '寝る前', 3, false],
+    ]);
+    // 薬と服薬記録はそのまま
+    expect(result.backup.data.medications).toEqual(dataWithMedication().medications);
+    expect(result.backup.data.medicationIntakes).toEqual(dataWithMedication().medicationIntakes);
+  });
+
+  it('自分で追加した時間帯も、書き出したとおりに読み込める', () => {
+    const data = dataWithMedication();
+    data.medicationTimings.push({ id: 'custom-1', name: '朝食前', hidden: true, order: -1, createdAt: '' });
+    data.medications[0].timings.push('custom-1');
+    const result = parseBackup(serializeBackup(buildBackup(data, now)));
+    expect(result.ok && result.backup.data).toEqual(data);
+  });
+
+  it('時間帯の一覧があっても配列でなければ読み込まない', () => {
+    const json = exportedJson(dataWithMedication());
+    (json.data as Record<string, unknown>).medicationTimings = null;
+    expect(parseBackup(JSON.stringify(json))).toEqual({ ok: false, reason: '「服薬の時間帯」のデータがありません' });
+  });
+
+  it('薬が一覧にない時間帯を指しているファイルは読み込まない', () => {
+    const data = dataWithMedication();
+    data.medications[0].timings.push('unknown');
+    expect(parseBackup(serializeBackup(buildBackup(data, now)))).toEqual({
+      ok: false,
+      reason: '「薬」の1件目の時間帯が見つかりません',
+    });
+  });
+
+  it('服薬記録が一覧にない時間帯を指しているファイルは読み込まない', () => {
+    const data = dataWithMedication();
+    data.medicationTimings = data.medicationTimings.filter((t) => t.id !== 'bedtime');
+    data.medications[0].timings = ['morning'];
+    expect(parseBackup(serializeBackup(buildBackup(data, now)))).toEqual({
+      ok: false,
+      reason: '「服薬記録」の1件目の時間帯が見つかりません',
+    });
   });
 });
 

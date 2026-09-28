@@ -10,10 +10,12 @@ import type {
   CompletionRecord,
   Medication,
   MedicationIntake,
+  MedicationTiming,
   ProfileSection,
   StockLog,
   Task,
 } from '../lib/types';
+import { buildInitialMedicationTimings } from '../lib/medicationTimings';
 import {
   buildInitialCategories,
   buildInitialClinicNoteCategories,
@@ -29,6 +31,7 @@ export class AppDatabase extends Dexie {
   profileSections!: EntityTable<ProfileSection, 'id'>;
   medications!: EntityTable<Medication, 'id'>;
   medicationIntakes!: EntityTable<MedicationIntake, 'id'>;
+  medicationTimings!: EntityTable<MedicationTiming, 'id'>;
   stockLogs!: EntityTable<StockLog, 'id'>;
   clinicNotes!: EntityTable<ClinicNote, 'id'>;
   clinicNoteCategories!: EntityTable<ClinicNoteCategory, 'id'>;
@@ -64,8 +67,17 @@ export class AppDatabase extends Dexie {
         await tx.table<Alter, string>('alters').bulkPut(upgraded);
         await addInitialData(tx, new Date());
       });
-    // 新しく入れたとき(版1を通らない)も、同じ最初のデータを入れる
-    this.on('populate', (tx) => addInitialData(tx, new Date()));
+    // 版3:SPEC.md 3.5・7.8。服薬の時間帯の一覧を足し、最初の4つを入れる
+    // 最初の4つのIDは、薬・服薬記録に入っていた時間帯の値と同じなので、薬と服薬記録は書き換えない
+    this.version(3)
+      .stores({ medicationTimings: 'id, order' })
+      .upgrade((tx) => addInitialMedicationTimings(tx, new Date()));
+    // 新しく入れたとき(版1〜3の upgrade を通らない)も、同じ最初のデータを入れる
+    this.on('populate', async (tx) => {
+      const now = new Date();
+      await addInitialData(tx, now);
+      await addInitialMedicationTimings(tx, now);
+    });
   }
 }
 
@@ -76,6 +88,13 @@ async function addInitialData(tx: Transaction, now: Date): Promise<void> {
   await tx
     .table<ClinicNoteCategory, string>('clinicNoteCategories')
     .bulkAdd(buildInitialClinicNoteCategories(now, newId));
+}
+
+/** 最初の4つの服薬の時間帯を入れる(SPEC.md 7.8) */
+async function addInitialMedicationTimings(tx: Transaction, now: Date): Promise<void> {
+  await tx
+    .table<MedicationTiming, string>('medicationTimings')
+    .bulkAdd(buildInitialMedicationTimings(now.toISOString()));
 }
 
 /** アプリ全体で使うデータベース */

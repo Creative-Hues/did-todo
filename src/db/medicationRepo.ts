@@ -3,23 +3,29 @@ import type { AppDatabase } from './db';
 import { applyIntake, findTimingIntakes, normalizeTimings } from '../lib/medication';
 import { nextOrder, reorderSubset } from '../lib/ordering';
 import { addLogicalDays, startOfLogicalDate, toLogicalDate, type LogicalDate } from '../lib/period';
-import type { Medication, MedicationIntake, MedicationTiming, StockLog } from '../lib/types';
+import type { Medication, MedicationIntake, MedicationTiming, MedicationTimingId, StockLog } from '../lib/types';
 
 /** 薬の入力内容(名前は normalizeName 済み、錠数は parseTabletCount 済みのもの) */
 export interface MedicationInput {
   name: string;
   kind: Medication['kind'];
-  /** 決まった時間のときの時間帯(頓服のときは無視する) */
-  timings: MedicationTiming[];
+  /** 決まった時間のときの時間帯のID(頓服のときは無視する) */
+  timings: MedicationTimingId[];
   dosePerTake: number;
 }
 
-/** 頓服なら時間帯を空にし、決まった時間なら時間帯を並び順にそろえる */
-function toStoredFields(input: MedicationInput): Pick<Medication, 'name' | 'kind' | 'timings' | 'dosePerTake'> {
+/**
+ * 頓服なら時間帯を空にし、決まった時間なら時間帯を一覧の並び順にそろえる(一覧にないIDは除く)
+ * @param timingList 時間帯の一覧(非表示のものも含む)
+ */
+function toStoredFields(
+  input: MedicationInput,
+  timingList: readonly MedicationTiming[],
+): Pick<Medication, 'name' | 'kind' | 'timings' | 'dosePerTake'> {
   return {
     name: input.name,
     kind: input.kind,
-    timings: input.kind === 'scheduled' ? normalizeTimings(input.timings) : [],
+    timings: input.kind === 'scheduled' ? normalizeTimings(input.timings, timingList) : [],
     dosePerTake: input.dosePerTake,
   };
 }
@@ -38,10 +44,11 @@ export async function addMedication(
   remaining: number,
   now: Date,
 ): Promise<Medication> {
-  return database.transaction('rw', [database.medications, database.stockLogs], async () => {
+  const tables = [database.medications, database.stockLogs, database.medicationTimings];
+  return database.transaction('rw', tables, async () => {
     const medication: Medication = {
       id: crypto.randomUUID(),
-      ...toStoredFields(input),
+      ...toStoredFields(input, await database.medicationTimings.toArray()),
       remaining,
       status: 'active',
       order: nextOrder(await database.medications.toArray()),
@@ -55,7 +62,9 @@ export async function addMedication(
 
 /** 名前・飲み方・時間帯・1回の錠数を変更する(残りは補充・数え直しでだけ変える) */
 export async function updateMedication(database: AppDatabase, id: string, input: MedicationInput): Promise<void> {
-  await database.medications.update(id, toStoredFields(input));
+  await database.transaction('rw', [database.medications, database.medicationTimings], async () => {
+    await database.medications.update(id, toStoredFields(input, await database.medicationTimings.toArray()));
+  });
 }
 
 /** 中止/再開を切り替える(SPEC.md 7.7) */
@@ -187,7 +196,7 @@ async function removeIntakes(database: AppDatabase, intakes: readonly Medication
  */
 export async function recordScheduledIntakes(
   database: AppDatabase,
-  timing: MedicationTiming,
+  timing: MedicationTimingId,
   medicationIds: readonly string[],
   alterId: string | null,
   now: Date,
@@ -216,7 +225,7 @@ export async function recordScheduledIntakes(
  */
 export async function undoScheduledIntakes(
   database: AppDatabase,
-  timing: MedicationTiming,
+  timing: MedicationTimingId,
   logicalDate: LogicalDate,
 ): Promise<number> {
   return database.transaction('rw', [database.medications, database.medicationIntakes], async () => {

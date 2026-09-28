@@ -10,6 +10,7 @@ function backupTables(database: AppDatabase) {
     database.profileSections,
     database.tasks,
     database.records,
+    database.medicationTimings,
     database.medications,
     database.medicationIntakes,
     database.stockLogs,
@@ -27,6 +28,7 @@ export async function readAllData(database: AppDatabase): Promise<BackupData> {
     profileSections: await database.profileSections.toArray(),
     tasks: await database.tasks.toArray(),
     records: await database.records.toArray(),
+    medicationTimings: await database.medicationTimings.toArray(),
     medications: await database.medications.toArray(),
     medicationIntakes: await database.medicationIntakes.toArray(),
     stockLogs: await database.stockLogs.toArray(),
@@ -49,6 +51,7 @@ export async function replaceAllData(database: AppDatabase, data: BackupData): P
     await database.profileSections.bulkAdd(data.profileSections);
     await database.tasks.bulkAdd(data.tasks);
     await database.records.bulkAdd(data.records);
+    await database.medicationTimings.bulkAdd(data.medicationTimings);
     await database.medications.bulkAdd(data.medications);
     await database.medicationIntakes.bulkAdd(data.medicationIntakes);
     await database.stockLogs.bulkAdd(data.stockLogs);

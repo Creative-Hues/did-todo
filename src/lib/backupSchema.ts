@@ -1,6 +1,7 @@
 // バックアップの中身の形のチェック(SPEC.md 12章)。純粋関数。
 // ライブラリを使わず、テーブルごとに「項目名 → チェック関数」の表で確かめる。
 // 表は Record<keyof 型, …> なので、型に項目を足したら、ここも直さないとビルドが通らない。
+import { buildInitialMedicationTimings } from './medicationTimings';
 import type {
   Alter,
   AlterCategory,
@@ -41,8 +42,6 @@ function optional(check: Check): Check {
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
-
-const TIMINGS: readonly MedicationTiming[] = ['morning', 'noon', 'evening', 'bedtime'];
 
 const isCycle: Check = (value) => {
   if (!isRecord(value)) {
@@ -114,7 +113,8 @@ const medicationSchema: Schema<Medication> = {
   id: isString,
   name: isString,
   kind: oneOf('scheduled', 'asNeeded'),
-  timings: (value) => Array.isArray(value) && value.every((item) => TIMINGS.includes(item)),
+  // 時間帯のID。時間帯の一覧にあるかどうかは、全体を読んだあとで確かめる(checkTimingReferences)
+  timings: isStringArray,
   dosePerTake: isNumber,
   remaining: isNumber,
   status: oneOf('active', 'stopped'),
@@ -127,9 +127,17 @@ const medicationIntakeSchema: Schema<MedicationIntake> = {
   medicationId: isString,
   alterId: isNullableString,
   takenAt: isString,
-  timing: (value) => value === null || TIMINGS.includes(value as MedicationTiming),
+  timing: isNullableString,
   deducted: isNumber,
   reason: isString,
+};
+
+const medicationTimingSchema: Schema<MedicationTiming> = {
+  id: isString,
+  name: isString,
+  hidden: isBoolean,
+  order: isNumber,
+  createdAt: isString,
 };
 
 const stockLogSchema: Schema<StockLog> = {
@@ -166,6 +174,7 @@ export interface BackupData {
   profileSections: ProfileSection[];
   tasks: Task[];
   records: CompletionRecord[];
+  medicationTimings: MedicationTiming[];
   medications: Medication[];
   medicationIntakes: MedicationIntake[];
   stockLogs: StockLog[];
@@ -181,6 +190,7 @@ const TABLES: { [K in keyof BackupData]: { label: string; schema: Schema<BackupD
   profileSections: { label: 'プロフィール', schema: profileSectionSchema },
   tasks: { label: 'タスク', schema: taskSchema },
   records: { label: '完了記録', schema: recordSchema },
+  medicationTimings: { label: '服薬の時間帯', schema: medicationTimingSchema },
   medications: { label: '薬', schema: medicationSchema },
   medicationIntakes: { label: '服薬記録', schema: medicationIntakeSchema },
   stockLogs: { label: '在庫の履歴', schema: stockLogSchema },
@@ -235,18 +245,41 @@ function parseTable<K extends keyof BackupData>(name: K, rows: unknown): BackupD
   return result as BackupData[K];
 }
 
-/** データ部分全体をチェックする。だめなときは理由の文字列を返す */
-export function parseBackupData(value: unknown): BackupData | string {
+/**
+ * 薬と服薬記録が、時間帯の一覧にない時間帯を指していないか確かめる(SPEC.md 12章)。
+ * だめなときは理由の文字列を返す
+ */
+function checkTimingReferences(data: BackupData): string | null {
+  const timingIds = new Set(data.medicationTimings.map((timing) => timing.id));
+  const medicationIndex = data.medications.findIndex((m) => m.timings.some((id) => !timingIds.has(id)));
+  if (medicationIndex >= 0) {
+    return `「薬」の${medicationIndex + 1}件目の時間帯が見つかりません`;
+  }
+  const intakeIndex = data.medicationIntakes.findIndex((i) => i.timing !== null && !timingIds.has(i.timing));
+  if (intakeIndex >= 0) {
+    return `「服薬記録」の${intakeIndex + 1}件目の時間帯が見つかりません`;
+  }
+  return null;
+}
+
+/**
+ * データ部分全体をチェックする。だめなときは理由の文字列を返す
+ * @param exportedAt ファイルを書き出した日時。服薬の時間帯の一覧がない古いファイル(フェーズ9段階Eより前)は、
+ *   最初の4つの時間帯が入っているものとして読み込み、その作成日時に使う(SPEC.md 12章)
+ */
+export function parseBackupData(value: unknown, exportedAt: string): BackupData | string {
   if (!isRecord(value)) {
     return 'データがありません';
   }
   const data: Partial<Record<keyof BackupData, unknown>> = {};
   for (const name of BACKUP_TABLE_NAMES) {
-    const parsed = parseTable(name, value[name]);
+    const rows =
+      name === 'medicationTimings' && value[name] === undefined ? buildInitialMedicationTimings(exportedAt) : value[name];
+    const parsed = parseTable(name, rows);
     if (typeof parsed === 'string') {
       return parsed;
     }
     data[name] = parsed;
   }
-  return data as BackupData;
+  return checkTimingReferences(data as BackupData) ?? (data as BackupData);
 }

@@ -4,25 +4,23 @@ import { resolveRecordAlter } from './completionLabel';
 import { addLogicalDays, startOfLogicalDate, toLogicalDate, type LogicalDate } from './period';
 import type { PreviousPeriodLabel } from './previousPeriod';
 import { formatClockInLogicalDay, formatClockOf, formatElapsed } from './timeFormat';
-import type { Alter, Medication, MedicationIntake, MedicationTiming, StockLog } from './types';
-
-/** 時間帯の並び順(画面の上から) */
-export const TIMINGS: readonly MedicationTiming[] = ['morning', 'noon', 'evening', 'bedtime'];
-
-/** 時間帯の表示名 */
-export const TIMING_LABELS: Record<MedicationTiming, string> = {
-  morning: '朝食後',
-  noon: '昼食後',
-  evening: '夕食後',
-  bedtime: '寝る前',
-};
+import { sortTimingsByOrder } from './medicationTimings';
+import type { Alter, Medication, MedicationIntake, MedicationTiming, MedicationTimingId, StockLog } from './types';
 
 /** 「あと何日分」がこの日数以下なら目立たせる(SPEC.md 7.3) */
 export const LOW_STOCK_DAYS = 7;
 
-/** 時間帯を決まった並び順にそろえ、重なりを除く */
-export function normalizeTimings(timings: readonly MedicationTiming[]): MedicationTiming[] {
-  return TIMINGS.filter((timing) => timings.includes(timing));
+/**
+ * 薬の時間帯のIDを、時間帯の一覧の並び順にそろえ、重なりと一覧にないIDを除く
+ * @param timingList 時間帯の一覧(非表示のものも含む)
+ */
+export function normalizeTimings(
+  ids: readonly MedicationTimingId[],
+  timingList: readonly MedicationTiming[],
+): MedicationTimingId[] {
+  return sortTimingsByOrder(timingList)
+    .filter((timing) => ids.includes(timing.id))
+    .map((timing) => timing.id);
 }
 
 /**
@@ -85,7 +83,7 @@ function findLatestIntake(intakes: readonly MedicationIntake[]): MedicationIntak
 /** その論理日の、その時間帯の記録 */
 export function findTimingIntakes(
   intakes: readonly MedicationIntake[],
-  timing: MedicationTiming,
+  timing: MedicationTimingId,
   logicalDate: LogicalDate,
 ): MedicationIntake[] {
   return intakes.filter((i) => i.timing === timing && toLogicalDate(new Date(i.takenAt)) === logicalDate);
@@ -101,6 +99,7 @@ export type YesterdayResult = { kind: 'none' } | { kind: 'record'; intake: Medic
 
 /** 記録画面の時間帯の欄 */
 export interface TimingSection {
+  /** 時間帯(名前は欄の見出しに使う) */
   timing: MedicationTiming;
   /** その時間帯の使用中の薬(order 順) */
   medications: Medication[];
@@ -112,11 +111,15 @@ export interface TimingSection {
 }
 
 /**
- * 記録画面の時間帯の欄を作る。使用中の決まった時間の薬がない時間帯は出さない。
+ * 記録画面の時間帯の欄を、時間帯の一覧の並び順で作る(SPEC.md 7.4・7.8)。
+ * 使用中の決まった時間の薬がない時間帯は出さない。
+ * 非表示の時間帯でも、使用中の薬が使っていれば出す。
+ * @param timingList 時間帯の一覧(非表示のものも含む)
  * @param now 現在時刻(テストで任意の時刻を渡せるよう引数にしている)
  */
 export function buildTimingSections(
   medications: readonly Medication[],
+  timingList: readonly MedicationTiming[],
   intakes: readonly MedicationIntake[],
   now: Date,
 ): TimingSection[] {
@@ -125,14 +128,14 @@ export function buildTimingSections(
   const todayStart = startOfLogicalDate(today).getTime();
   const scheduled = sortMedications(medications).active.filter((m) => m.kind === 'scheduled');
 
-  return TIMINGS.flatMap((timing) => {
-    const inTiming = scheduled.filter((m) => m.timings.includes(timing));
+  return sortTimingsByOrder(timingList).flatMap((timing) => {
+    const inTiming = scheduled.filter((m) => m.timings.includes(timing.id));
     if (inTiming.length === 0) {
       return [];
     }
-    const todayIntakes = findTimingIntakes(intakes, timing, today);
+    const todayIntakes = findTimingIntakes(intakes, timing.id, today);
     const allCreatedToday = inTiming.every((m) => new Date(m.createdAt).getTime() >= todayStart);
-    const latestYesterday = findLatestIntake(findTimingIntakes(intakes, timing, yesterday));
+    const latestYesterday = findLatestIntake(findTimingIntakes(intakes, timing.id, yesterday));
     const yesterdayResult: YesterdayResult = allCreatedToday
       ? { kind: 'none' }
       : latestYesterday
@@ -170,7 +173,7 @@ export function findLastAsNeeded(medicationId: string, intakes: readonly Medicat
 /** 記録の一覧の1行(SPEC.md 7.6) */
 export type HistoryEntry =
   /** 決まった時間:日・時間帯ごとにまとめる(取り消しもまとめて行う) */
-  | { kind: 'scheduled'; timing: MedicationTiming; intakes: MedicationIntake[]; takenAt: string }
+  | { kind: 'scheduled'; timing: MedicationTimingId; intakes: MedicationIntake[]; takenAt: string }
   /** 頓服:1件ずつ */
   | { kind: 'asNeeded'; intake: MedicationIntake; takenAt: string };
 
@@ -183,6 +186,7 @@ export interface HistoryDay {
 /**
  * 記録を論理日ごとに分ける。新しい日を上に、1日の中は古い順(朝食後が上、夜中の「寝る前」がいちばん下)に並べる。
  * 決まった時間の記録は、時間帯ごとに1行にまとめる(中の記録は時刻の古い順)。
+ * 時間帯は記録に入っているIDでまとめるので、追加した時間帯や非表示の時間帯もそのまま出る。
  */
 export function groupIntakesByLogicalDay(intakes: readonly MedicationIntake[]): HistoryDay[] {
   const byDate = new Map<LogicalDate, MedicationIntake[]>();
@@ -192,16 +196,17 @@ export function groupIntakesByLogicalDay(intakes: readonly MedicationIntake[]): 
   }
   const days = [...byDate.entries()].map(([logicalDate, dayIntakes]): HistoryDay => {
     const entries: HistoryEntry[] = [];
-    for (const timing of TIMINGS) {
-      const group = dayIntakes
-        .filter((i) => i.timing === timing)
-        .sort((a, b) => a.takenAt.localeCompare(b.takenAt));
-      if (group.length > 0) {
-        entries.push({ kind: 'scheduled', timing, intakes: group, takenAt: group[group.length - 1].takenAt });
+    const byTiming = new Map<MedicationTimingId, MedicationIntake[]>();
+    for (const intake of dayIntakes) {
+      if (intake.timing === null) {
+        entries.push({ kind: 'asNeeded', intake, takenAt: intake.takenAt });
+      } else {
+        byTiming.set(intake.timing, [...(byTiming.get(intake.timing) ?? []), intake]);
       }
     }
-    for (const intake of dayIntakes.filter((i) => i.timing === null)) {
-      entries.push({ kind: 'asNeeded', intake, takenAt: intake.takenAt });
+    for (const [timing, timingIntakes] of byTiming) {
+      const group = [...timingIntakes].sort((a, b) => a.takenAt.localeCompare(b.takenAt));
+      entries.push({ kind: 'scheduled', timing, intakes: group, takenAt: group[group.length - 1].takenAt });
     }
     entries.sort((a, b) => a.takenAt.localeCompare(b.takenAt));
     return { logicalDate, entries };
@@ -214,12 +219,19 @@ export function formatTablets(count: number): string {
   return String(count);
 }
 
-/** 飲み方の表示(「決まった時間・朝食後/寝る前」「頓服」) */
-export function medicationKindLabel(medication: Pick<Medication, 'kind' | 'timings'>): string {
+/**
+ * 飲み方の表示(「決まった時間・朝食後/寝る前」「頓服」)。時間帯は一覧の並び順
+ * @param timingList 時間帯の一覧(非表示のものも含む)
+ */
+export function medicationKindLabel(
+  medication: Pick<Medication, 'kind' | 'timings'>,
+  timingList: readonly MedicationTiming[],
+): string {
   if (medication.kind === 'asNeeded') {
     return '頓服';
   }
-  const timings = normalizeTimings(medication.timings).map((timing) => TIMING_LABELS[timing]);
+  const nameById = new Map(timingList.map((timing) => [timing.id, timing.name]));
+  const timings = normalizeTimings(medication.timings, timingList).map((id) => nameById.get(id) ?? '');
   return timings.length > 0 ? `決まった時間・${timings.join('/')}` : '決まった時間';
 }
 

@@ -81,8 +81,23 @@ export interface ProfileSection {
   createdAt: string;
 }
 
-/** 服薬の時間帯:朝食後/昼食後/夕食後/寝る前 */
-export type MedicationTiming = 'morning' | 'noon' | 'evening' | 'bedtime';
+/**
+ * 服薬の時間帯のID(SPEC.md 7.8)。
+ * 最初の4つ(朝食後/昼食後/夕食後/寝る前)は 'morning' / 'noon' / 'evening' / 'bedtime'。
+ * 自分で追加した時間帯は、ほかのデータと同じ形のID
+ */
+export type MedicationTimingId = string;
+
+/** 服薬の時間帯(永続データ。SPEC.md 7.8) */
+export interface MedicationTiming {
+  id: MedicationTimingId;
+  name: string;
+  /** 非表示フラグ(薬の登録で新しく選べなくなる。記録はそのまま残る) */
+  hidden: boolean;
+  /** 並び順(記録画面の欄の順番) */
+  order: number;
+  createdAt: string;
+}
 
 /** 薬(永続データ。SPEC.md 7.1) */
 export interface Medication {
@@ -90,8 +105,8 @@ export interface Medication {
   name: string;
   /** 飲み方:決まった時間 / 頓服 */
   kind: 'scheduled' | 'asNeeded';
-  /** 時間帯(決まった時間のときだけ使う) */
-  timings: MedicationTiming[];
+  /** 時間帯のID(決まった時間のときだけ使う。SPEC.md 7.8) */
+  timings: MedicationTimingId[];
   /** 1回の錠数(0.5錠単位) */
   dosePerTake: number;
   /** 残りの錠数(0.5錠単位) */
@@ -110,8 +125,8 @@ export interface MedicationIntake {
   alterId: string | null;
   /** 飲んだ日時(ISO形式) */
   takenAt: string;
-  /** 時間帯。頓服のときは null */
-  timing: MedicationTiming | null;
+  /** 時間帯のID。頓服のときは null */
+  timing: MedicationTimingId | null;
   /** 実際に残りから減らした錠数(取り消しのときに戻す数) */
   deducted: number;
   /** 飲んだ理由(頓服のとき。空欄可) */

@@ -15,15 +15,17 @@ import {
 } from '../db/medicationRepo';
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { showSaveError } from '../lib/showError';
-import type { Medication } from '../lib/types';
+import type { Medication, MedicationTiming } from '../lib/types';
 
 interface Props {
   /** 編集する薬(登録のときは undefined) */
   medication?: Medication;
+  /** 時間帯の一覧(非表示のものも含む) */
+  timingList: MedicationTiming[];
   onBack: () => void;
 }
 
-export function MedicationEditScreen({ medication, onBack }: Props) {
+export function MedicationEditScreen({ medication, timingList, onBack }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // 服薬記録の件数(1件以上あると削除できない。SPEC.md 7.7)
   const intakeCount = useLiveQuery(
@@ -74,7 +76,7 @@ export function MedicationEditScreen({ medication, onBack }: Props) {
         </button>
         <h1>{medication ? '薬を編集' : '薬を登録'}</h1>
       </header>
-      <MedicationForm initial={medication} onSubmit={handleSubmit} onCancel={onBack} />
+      <MedicationForm initial={medication} timingList={timingList} onSubmit={handleSubmit} onCancel={onBack} />
       {medication && (
         <>
           <StockPanel medication={medication} />

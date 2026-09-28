@@ -3,13 +3,16 @@
 // 残りの錠数は登録のときだけ入れる(登録したあとは補充・数え直しで変える。SPEC.md 7.2)
 import { useState, type FormEvent } from 'react';
 import type { MedicationInput } from '../../db/medicationRepo';
-import { TIMING_LABELS, TIMINGS, formatTablets } from '../../lib/medication';
+import { formatTablets } from '../../lib/medication';
 import { validateMedicationForm } from '../../lib/medicationForm';
-import type { Medication, MedicationTiming } from '../../lib/types';
+import { sortForSettings } from '../../lib/ordering';
+import type { Medication, MedicationTiming, MedicationTimingId } from '../../lib/types';
 
 interface Props {
   /** 編集するときの元の薬(登録のときは undefined) */
   initial?: Medication;
+  /** 時間帯の一覧(非表示のものも含む) */
+  timingList: MedicationTiming[];
   /**
    * 保存するとき
    * @param remaining 登録のときの残りの錠数(編集のときは null)
@@ -18,15 +21,18 @@ interface Props {
   onCancel: () => void;
 }
 
-export function MedicationForm({ initial, onSubmit, onCancel }: Props) {
+export function MedicationForm({ initial, timingList, onSubmit, onCancel }: Props) {
   const [name, setName] = useState(initial?.name ?? '');
   const [kind, setKind] = useState<Medication['kind']>(initial?.kind ?? 'scheduled');
-  const [timings, setTimings] = useState<MedicationTiming[]>(initial?.timings ?? []);
+  const [timings, setTimings] = useState<MedicationTimingId[]>(initial?.timings ?? []);
   const [doseText, setDoseText] = useState(initial ? formatTablets(initial.dosePerTake) : '1');
   const [remainingText, setRemainingText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  const toggleTiming = (timing: MedicationTiming) => {
+  // 選択肢は非表示でない時間帯を、一覧の並び順で出す(SPEC.md 7.1・7.8)
+  const selectableTimings = sortForSettings(timingList).visible;
+
+  const toggleTiming = (timing: MedicationTimingId) => {
     setTimings((current) => (current.includes(timing) ? current.filter((t) => t !== timing) : [...current, timing]));
   };
 
@@ -40,13 +46,10 @@ export function MedicationForm({ initial, onSubmit, onCancel }: Props) {
 
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    const result = validateMedicationForm({
-      name,
-      kind,
-      timings,
-      doseText,
-      remainingText: initial ? null : remainingText,
-    });
+    const result = validateMedicationForm(
+      { name, kind, timings, doseText, remainingText: initial ? null : remainingText },
+      timingList,
+    );
     if (!result.ok) {
       setError(result.error);
       return;
@@ -82,10 +85,14 @@ export function MedicationForm({ initial, onSubmit, onCancel }: Props) {
       {kind === 'scheduled' && (
         <fieldset className="field">
           <legend>時間帯(複数選べます)</legend>
-          {TIMINGS.map((timing) => (
-            <label key={timing} className="choice">
-              <input type="checkbox" checked={timings.includes(timing)} onChange={() => toggleTiming(timing)} />
-              {TIMING_LABELS[timing]}
+          {selectableTimings.map((timing) => (
+            <label key={timing.id} className="choice">
+              <input
+                type="checkbox"
+                checked={timings.includes(timing.id)}
+                onChange={() => toggleTiming(timing.id)}
+              />
+              {timing.name}
             </label>
           ))}
         </fieldset>

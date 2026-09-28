@@ -15,6 +15,7 @@ interface Props {
 
 export function MedicationSettingsScreen({ onBack }: Props) {
   const medications = useLiveQuery(() => db.medications.toArray());
+  const timings = useLiveQuery(() => db.medicationTimings.toArray());
   const [view, setView] = useState<View>({ kind: 'list' });
   const rememberScroll = useListScroll(view.kind === 'list');
 
@@ -24,7 +25,7 @@ export function MedicationSettingsScreen({ onBack }: Props) {
   };
   const backToList = () => setView({ kind: 'list' });
 
-  if (!medications) {
+  if (!medications || !timings) {
     return (
       <main className="app">
         <p>読み込み中…</p>
@@ -36,7 +37,9 @@ export function MedicationSettingsScreen({ onBack }: Props) {
     const medication = medications.find((m) => m.id === view.id);
     // 新規登録か、編集する薬が見つかるときだけ編集画面を出す(削除済みなら一覧を出す)
     if (view.id === null || medication) {
-      return <MedicationEditScreen key={view.id ?? 'new'} medication={medication} onBack={backToList} />;
+      return (
+        <MedicationEditScreen key={view.id ?? 'new'} medication={medication} timingList={timings} onBack={backToList} />
+      );
     }
   }
 
@@ -50,6 +53,7 @@ export function MedicationSettingsScreen({ onBack }: Props) {
       </header>
       <MedicationList
         medications={medications}
+        timingList={timings}
         onAdd={() => open({ kind: 'medication', id: null })}
         onOpen={(medication) => open({ kind: 'medication', id: medication.id })}
       />

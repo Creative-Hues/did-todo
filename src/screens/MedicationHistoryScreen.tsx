@@ -7,7 +7,8 @@ import { HistoryEntryItem, UNKNOWN_MEDICATION_NAME } from '../components/medicat
 import { db } from '../db/db';
 import { undoAsNeededIntake, undoScheduledIntakes } from '../db/medicationRepo';
 import { useLiveQuery } from '../hooks/useLiveQuery';
-import { TIMING_LABELS, groupIntakesByLogicalDay, intakeLabelText, type HistoryEntry } from '../lib/medication';
+import { groupIntakesByLogicalDay, intakeLabelText, type HistoryEntry } from '../lib/medication';
+import { timingNameOf } from '../lib/medicationTimings';
 import type { LogicalDate } from '../lib/period';
 import { showSaveError } from '../lib/showError';
 import { formatLogicalDateHeading } from '../lib/timeFormat';
@@ -27,9 +28,10 @@ export function MedicationHistoryScreen({ onBack }: Props) {
   const alters = useLiveQuery(() => db.alters.toArray());
   const medications = useLiveQuery(() => db.medications.toArray());
   const intakes = useLiveQuery(() => db.medicationIntakes.toArray());
+  const timings = useLiveQuery(() => db.medicationTimings.toArray());
   const [undoing, setUndoing] = useState<Undoing | null>(null);
 
-  if (!alters || !medications || !intakes) {
+  if (!alters || !medications || !timings || !intakes) {
     return (
       <main className="app">
         <p>読み込み中…</p>
@@ -39,6 +41,7 @@ export function MedicationHistoryScreen({ onBack }: Props) {
 
   const alterById = new Map(alters.map((alter) => [alter.id, alter]));
   const medicationById = new Map(medications.map((medication) => [medication.id, medication]));
+  const timingById = new Map(timings.map((timing) => [timing.id, timing]));
   const days = groupIntakesByLogicalDay(intakes);
 
   const handleTap = (logicalDate: LogicalDate, entry: HistoryEntry) => {
@@ -48,7 +51,7 @@ export function MedicationHistoryScreen({ onBack }: Props) {
       setUndoing({
         logicalDate,
         entry,
-        message: `${heading}の${TIMING_LABELS[entry.timing]}の「${label}」の記録を取り消しますか?この時間帯の薬の記録がまとめて取り消され、残りの錠数も戻ります。`,
+        message: `${heading}の${timingNameOf(entry.timing, timingById)}の「${label}」の記録を取り消しますか?この時間帯の薬の記録がまとめて取り消され、残りの錠数も戻ります。`,
       });
     } else {
       const name = medicationById.get(entry.intake.medicationId)?.name ?? UNKNOWN_MEDICATION_NAME;
@@ -93,6 +96,7 @@ export function MedicationHistoryScreen({ onBack }: Props) {
                   entry={entry}
                   logicalDate={day.logicalDate}
                   medicationById={medicationById}
+                  timingById={timingById}
                   alterById={alterById}
                   onTap={(tapped) => handleTap(day.logicalDate, tapped)}
                 />

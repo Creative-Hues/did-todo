@@ -19,7 +19,16 @@ import {
   toLastAsNeededLabel,
   toYesterdayLabel,
 } from './medication';
-import type { Alter, Medication, MedicationIntake, MedicationTiming } from './types';
+import { buildInitialMedicationTimings } from './medicationTimings';
+import type { Alter, Medication, MedicationIntake, MedicationTiming, MedicationTimingId } from './types';
+
+/** 最初の4つの時間帯(朝食後・昼食後・夕食後・寝る前) */
+const TIMING_LIST = buildInitialMedicationTimings('2026-09-01T00:00:00.000Z');
+
+/** 最初の4つの時間帯で記録画面の欄を作る */
+function sectionsOf(medications: Medication[], intakes: MedicationIntake[], now: Date) {
+  return buildTimingSections(medications, TIMING_LIST, intakes, now);
+}
 
 /** 2026年のローカル時刻を作る(month は 1〜12) */
 function at(month: number, day: number, hour = 12, minute = 0): Date {
@@ -44,7 +53,7 @@ function med(overrides: Partial<Medication> = {}): Medication {
 function intake(
   id: string,
   takenAt: Date,
-  timing: MedicationTiming | null,
+  timing: MedicationTimingId | null,
   overrides: Partial<MedicationIntake> = {},
 ): MedicationIntake {
   return {
@@ -104,7 +113,7 @@ describe('残りの数を確認してください', () => {
 
 describe('並び順', () => {
   it('時間帯は朝食後→昼食後→夕食後→寝る前にそろえ、重なりを除く', () => {
-    expect(normalizeTimings(['bedtime', 'morning', 'bedtime'])).toEqual(['morning', 'bedtime']);
+    expect(normalizeTimings(['bedtime', 'morning', 'bedtime'], TIMING_LIST)).toEqual(['morning', 'bedtime']);
   });
 
   it('使用中と中止に分け、order 順に並べる', () => {
@@ -122,7 +131,7 @@ describe('記録画面の時間帯の欄', () => {
   const now = at(9, 28, 21);
 
   it('使用中の決まった時間の薬がある時間帯だけ、決まった順に出す', () => {
-    const sections = buildTimingSections(
+    const sections = sectionsOf(
       [
         med({ id: 'a', timings: ['bedtime', 'morning'] }),
         med({ id: 'b', timings: ['noon'], status: 'stopped' }),
@@ -131,12 +140,12 @@ describe('記録画面の時間帯の欄', () => {
       [],
       now,
     );
-    expect(sections.map((s) => s.timing)).toEqual(['morning', 'bedtime']);
+    expect(sections.map((s) => s.timing.id)).toEqual(['morning', 'bedtime']);
     expect(sections[0].medications.map((m) => m.id)).toEqual(['a']);
   });
 
   it('今日(論理日)のその時間帯の記録だけを今日の記録にする', () => {
-    const sections = buildTimingSections(
+    const sections = sectionsOf(
       [med()],
       [
         intake('today', at(9, 28, 21, 30), 'bedtime'),
@@ -145,21 +154,21 @@ describe('記録画面の時間帯の欄', () => {
       ],
       now,
     );
-    const bedtime = sections.find((s) => s.timing === 'bedtime');
+    const bedtime = sections.find((s) => s.timing.id === 'bedtime');
     expect(bedtime?.todayIntakes.map((i) => i.id)).toEqual(['today']);
     expect(bedtime?.latestToday?.id).toBe('today');
   });
 
   it('夜中2時の「寝る前」の記録は、前の日の記録になる', () => {
-    const sections = buildTimingSections([med()], [intake('late', at(9, 29, 2), 'bedtime')], at(9, 29, 4, 59));
-    expect(sections.find((s) => s.timing === 'bedtime')?.todayIntakes.map((i) => i.id)).toEqual(['late']);
-    const nextDay = buildTimingSections([med()], [intake('late', at(9, 29, 2), 'bedtime')], at(9, 29, 5));
-    expect(nextDay.find((s) => s.timing === 'bedtime')?.todayIntakes).toEqual([]);
+    const sections = sectionsOf([med()], [intake('late', at(9, 29, 2), 'bedtime')], at(9, 29, 4, 59));
+    expect(sections.find((s) => s.timing.id === 'bedtime')?.todayIntakes.map((i) => i.id)).toEqual(['late']);
+    const nextDay = sectionsOf([med()], [intake('late', at(9, 29, 2), 'bedtime')], at(9, 29, 5));
+    expect(nextDay.find((s) => s.timing.id === 'bedtime')?.todayIntakes).toEqual([]);
   });
 
   describe('昨日の結果', () => {
     const bedtimeOf = (medications: Medication[], intakes: MedicationIntake[], time: Date) =>
-      buildTimingSections(medications, intakes, time).find((s) => s.timing === 'bedtime');
+      sectionsOf(medications, intakes, time).find((s) => s.timing.id === 'bedtime');
 
     it('昨日の最後の記録を出す', () => {
       const section = bedtimeOf(
@@ -230,8 +239,8 @@ describe('記録の一覧(論理日ごと)', () => {
 
 describe('表示の文言', () => {
   it('飲み方:決まった時間は時間帯を決まった順で、頓服は「頓服」', () => {
-    expect(medicationKindLabel(med({ timings: ['bedtime', 'morning'] }))).toBe('決まった時間・朝食後/寝る前');
-    expect(medicationKindLabel(med({ kind: 'asNeeded', timings: [] }))).toBe('頓服');
+    expect(medicationKindLabel(med({ timings: ['bedtime', 'morning'] }), TIMING_LIST)).toBe('決まった時間・朝食後/寝る前');
+    expect(medicationKindLabel(med({ kind: 'asNeeded', timings: [] }), TIMING_LIST)).toBe('頓服');
   });
 
   it('残り:決まった時間は「残り14錠・あと7日分」、頓服は「残り○錠」', () => {
@@ -312,5 +321,63 @@ describe('この回は記録なし', () => {
 
   it('まだ記録していない時間帯では空(未記録の薬に「この回は記録なし」を出さない)', () => {
     expect(findSkippedMedicationIds({ medications, todayIntakes: [] }).size).toBe(0);
+  });
+});
+
+describe('自分で追加した時間帯(SPEC.md 7.8)', () => {
+  const beforeBreakfast: MedicationTiming = {
+    id: 'custom-1',
+    name: '朝食前',
+    hidden: false,
+    order: 4,
+    createdAt: '2026-09-10T00:00:00.000Z',
+  };
+  // 朝食前を並び替えで一番上にした一覧(order は小さいほど上)
+  const list: MedicationTiming[] = [...TIMING_LIST, { ...beforeBreakfast, order: -1 }];
+  const now = at(9, 28, 21);
+
+  it('記録画面の欄は、時間帯の一覧の並び順で出て、見出しには名前を使う', () => {
+    const sections = buildTimingSections([med({ timings: ['bedtime', 'custom-1', 'morning'] })], list, [], now);
+    expect(sections.map((s) => s.timing.name)).toEqual(['朝食前', '朝食後', '寝る前']);
+  });
+
+  it('非表示の時間帯でも、使用中の薬が使っていれば欄を出す', () => {
+    const hiddenList = list.map((t) => (t.id === 'custom-1' ? { ...t, hidden: true } : t));
+    const sections = buildTimingSections([med({ timings: ['custom-1'] })], hiddenList, [], now);
+    expect(sections.map((s) => s.timing.id)).toEqual(['custom-1']);
+  });
+
+  it('同じ論理日の記録と「昨日」の判定は、追加した時間帯でも同じ', () => {
+    const sections = buildTimingSections(
+      [med({ timings: ['custom-1'] })],
+      list,
+      [intake('t', at(9, 28, 7), 'custom-1'), intake('y', at(9, 27, 7), 'custom-1'), intake('o', at(9, 28, 8), 'morning')],
+      now,
+    );
+    expect(sections[0].todayIntakes.map((i) => i.id)).toEqual(['t']);
+    expect(sections[0].yesterday).toEqual({ kind: 'record', intake: expect.objectContaining({ id: 'y' }) });
+  });
+
+  it('1日の量には、追加した時間帯も非表示の時間帯も数える', () => {
+    expect(dailyDose(med({ dosePerTake: 1, timings: ['custom-1', 'morning', 'bedtime'] }))).toBe(3);
+  });
+
+  it('薬の時間帯は一覧の並び順にそろえ、一覧にないIDは除く', () => {
+    expect(normalizeTimings(['bedtime', 'unknown', 'custom-1'], list)).toEqual(['custom-1', 'bedtime']);
+  });
+
+  it('飲み方の表示にも、追加した時間帯の名前が一覧の並び順で出る', () => {
+    expect(medicationKindLabel(med({ timings: ['bedtime', 'custom-1'] }), list)).toBe('決まった時間・朝食前/寝る前');
+  });
+
+  it('記録の一覧では、追加した時間帯の記録も時間帯ごとにまとまる', () => {
+    const days = groupIntakesByLogicalDay([
+      intake('c1', at(9, 28, 7), 'custom-1'),
+      intake('c2', at(9, 28, 7, 1), 'custom-1', { medicationId: 'med-2' }),
+      intake('m1', at(9, 28, 8), 'morning'),
+    ]);
+    expect(
+      days[0].entries.map((e) => (e.kind === 'scheduled' ? `${e.timing}:${e.intakes.map((i) => i.id).join(',')}` : '')),
+    ).toEqual(['custom-1:c1,c2', 'morning:m1']);
   });
 });

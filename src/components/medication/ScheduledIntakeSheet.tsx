@@ -1,11 +1,11 @@
 // 決まった時間の薬を記録するシート(SPEC.md 7.4)。下から出る
 // その時間帯の薬がチェック付きで並び(最初は全部チェック済み)、人格を選ぶとチェックした薬をまとめて記録する
 import { useState } from 'react';
-import { TIMING_LABELS } from '../../lib/medication';
 import type { Alter, Medication, MedicationTiming } from '../../lib/types';
 import { AlterButtons } from '../common/AlterButtons';
 
 interface Props {
+  /** 記録する時間帯(名前をシートの見出しに使う) */
   timing: MedicationTiming;
   /** その時間帯の使用中の薬(order 順) */
   medications: Medication[];
@@ -37,7 +37,7 @@ export function ScheduledIntakeSheet({ timing, medications, alters, onSelect, on
     <div className="overlay overlay--bottom">
       <div className="sheet" role="dialog" aria-modal="true" aria-labelledby="intake-title">
         <h2 id="intake-title" className="sheet__title">
-          {TIMING_LABELS[timing]}の薬を飲んだのは?
+          {timing.name}の薬を飲んだのは?
         </h2>
         <fieldset className="field intake-checks">
           <legend>飲んだ薬(飲んでいない薬はチェックを外す)</legend>

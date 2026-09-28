@@ -17,6 +17,7 @@ import {
   updateMedication,
   type MedicationInput,
 } from './medicationRepo';
+import { addMedicationTiming } from './medicationTimingRepo';
 
 /** 2026年のローカル時刻を作る(month は 1〜12) */
 function at(month: number, day: number, hour = 12, minute = 0): Date {
@@ -157,6 +158,22 @@ describe('服薬の保存', () => {
       // 翌日の朝5時からは記録できる
       expect(await recordScheduledIntakes(database, 'bedtime', [a.id], 'alter-b', at(9, 29, 5))).toHaveLength(1);
       expect(await remainingOf(a.id)).toBe(11);
+    });
+
+    it('自分で追加した時間帯でも、同じ論理日には1回だけ記録でき、時間帯ごとに取り消せる', async () => {
+      const added = await addMedicationTiming(database, '朝食前', now);
+      const timingId = added.ok ? added.timing.id : '';
+      const a = await addMedication(database, { ...scheduled, timings: [timingId] }, 14, now);
+      expect(a.timings).toEqual([timingId]);
+      expect(await recordScheduledIntakes(database, timingId, [a.id], null, at(9, 28, 7))).toHaveLength(1);
+      expect(await recordScheduledIntakes(database, timingId, [a.id], null, at(9, 28, 12))).toBeNull();
+      expect(await undoScheduledIntakes(database, timingId, '2026-09-28')).toBe(1);
+      expect(await remainingOf(a.id)).toBe(14);
+    });
+
+    it('一覧にない時間帯は、薬に保存しない', async () => {
+      const a = await addMedication(database, { ...scheduled, timings: ['unknown', 'bedtime'] }, 14, now);
+      expect(a.timings).toEqual(['bedtime']);
     });
 
     it('時間帯の取り消しで、その時間帯の全部の薬が戻り、記録し直せる', async () => {
