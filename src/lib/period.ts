@@ -38,6 +38,14 @@ export function toLogicalDate(date: Date): LogicalDate {
   return formatDate(shifted.getFullYear(), shifted.getMonth() + 1, shifted.getDate());
 }
 
+/**
+ * 日時の「実際の日付」(朝5時の区切りを使わない、端末のローカル時刻の日付)を 'YYYY-MM-DD' で表す。
+ * ファイル名など、カレンダーどおりの日付を出したいときに使う。
+ */
+export function toCalendarDate(date: Date): string {
+  return formatDate(date.getFullYear(), date.getMonth() + 1, date.getDate());
+}
+
 /** 論理日どうしの日数差(to − from)。to が from より前ならマイナスになる */
 export function diffLogicalDays(from: LogicalDate, to: LogicalDate): number {
   return toDayNumber(to) - toDayNumber(from);

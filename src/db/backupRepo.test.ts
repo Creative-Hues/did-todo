@@ -1,0 +1,185 @@
+// テスト用の疑似データベース(fake-indexeddb)を使う
+import 'fake-indexeddb/auto';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { AppDatabase } from './db';
+import { getLastExportedAt, readAllData, replaceAllData, setLastExportedAt } from './backupRepo';
+import { buildBackup, parseBackup, serializeBackup, type BackupData } from '../lib/backup';
+import { BACKUP_TABLE_NAMES } from '../lib/backupSchema';
+
+const now = new Date(2026, 8, 28, 21, 30);
+
+/** すべてのテーブルに1件以上入ったデータ */
+function fullData(): BackupData {
+  const createdAt = '2026-09-01T00:00:00.000Z';
+  return {
+    alters: [
+      {
+        id: 'alter-a',
+        name: '人格A',
+        color: '#4a90d9',
+        hidden: false,
+        order: 0,
+        createdAt,
+        reading: 'じんかくえー',
+        categoryId: 'cat-1',
+        age: '20代',
+        gender: '',
+        identify: '話し方がていねい',
+      },
+      {
+        id: 'alter-b',
+        name: '人格B',
+        color: '#d94a4a',
+        hidden: true,
+        order: 1,
+        createdAt,
+        reading: '',
+        categoryId: null,
+        age: '',
+        gender: '',
+        identify: '',
+      },
+    ],
+    categories: [{ id: 'cat-1', name: '主人格', order: 0, createdAt }],
+    profileSections: [
+      { id: 'p1', alterId: 'alter-a', title: '特徴', body: '1行目\n2行目', includeInPdf: true, order: 0, createdAt },
+      { id: 'p2', alterId: null, title: 'みんなに共通の配慮', body: '', includeInPdf: false, order: 0, createdAt },
+    ],
+    tasks: [
+      {
+        id: 'task-1',
+        name: '植物に水やり',
+        cycle: { type: 'weekly' },
+        careAlterIds: ['alter-a'],
+        hidden: false,
+        order: 0,
+        createdAt,
+      },
+    ],
+    records: [
+      { id: 'r1', taskId: 'task-1', alterId: 'alter-b', completedAt: '2026-09-20T01:00:00.000Z' },
+      {
+        id: 'r2',
+        taskId: 'deleted-task',
+        alterId: null,
+        completedAt: '2026-09-21T01:00:00.000Z',
+        careAlterIdsAtCompletion: ['alter-a'],
+      },
+    ],
+    medications: [
+      {
+        id: 'med-1',
+        name: '薬A',
+        kind: 'scheduled',
+        timings: ['morning', 'bedtime'],
+        dosePerTake: 0.5,
+        remaining: 13.5,
+        status: 'active',
+        order: 0,
+        createdAt,
+      },
+    ],
+    medicationIntakes: [
+      {
+        id: 'i1',
+        medicationId: 'med-1',
+        alterId: 'alter-a',
+        takenAt: '2026-09-27T12:00:00.000Z',
+        timing: 'bedtime',
+        deducted: 0.5,
+        reason: '',
+      },
+    ],
+    stockLogs: [{ id: 's1', medicationId: 'med-1', kind: 'refill', amount: 14, at: createdAt }],
+    clinicNotes: [
+      {
+        id: 'n1',
+        alterId: null,
+        categoryId: 'nc-1',
+        body: '眠れない日がある',
+        createdAt,
+        discussedAt: null,
+      },
+    ],
+    clinicNoteCategories: [{ id: 'nc-1', name: '睡眠', order: 0, createdAt }],
+    bucketItems: [
+      {
+        id: 'b1',
+        alterId: 'alter-a',
+        body: '海を見に行く',
+        order: 0,
+        createdAt,
+        achievedAt: '2026-09-25T01:00:00.000Z',
+        helperAlterIds: ['alter-b'],
+      },
+    ],
+  };
+}
+
+/** 比べやすいように、各テーブルを id 順に並べる */
+function sortById(data: BackupData): BackupData {
+  const sorted = { ...data };
+  for (const name of BACKUP_TABLE_NAMES) {
+    (sorted[name] as { id: string }[]) = [...data[name]].sort((a, b) => a.id.localeCompare(b.id));
+  }
+  return sorted;
+}
+
+describe('バックアップの書き出しと読み込み', () => {
+  let database: AppDatabase;
+
+  beforeEach(() => {
+    database = new AppDatabase('did-todo-test-backup');
+  });
+
+  afterEach(async () => {
+    await database.delete();
+  });
+
+  it('データベースのテーブルは、端末の設定を除いてすべてバックアップの対象になっている', () => {
+    const tableNames = database.tables.map((table) => table.name).filter((name) => name !== 'meta');
+    expect([...tableNames].sort()).toEqual([...BACKUP_TABLE_NAMES].sort());
+  });
+
+  it('書き出し → 読み込みで、すべてのデータが元どおりになる', async () => {
+    await replaceAllData(database, fullData());
+    const text = serializeBackup(buildBackup(await readAllData(database), now));
+
+    // 書き出したあとにデータを変える
+    await database.alters.update('alter-a', { name: '人格A2' });
+    await database.tasks.clear();
+    await database.bucketItems.add({
+      id: 'b2',
+      alterId: 'alter-b',
+      body: '増えた項目',
+      order: 0,
+      createdAt: '',
+      achievedAt: null,
+      helperAlterIds: [],
+    });
+
+    const parsed = parseBackup(text);
+    if (!parsed.ok) {
+      throw new Error(parsed.reason);
+    }
+    await replaceAllData(database, parsed.backup.data);
+    expect(sortById(await readAllData(database))).toEqual(sortById(fullData()));
+  });
+
+  it('読み込みに失敗したときは、今のデータが1件も変わらない', async () => {
+    await replaceAllData(database, fullData());
+    const broken = fullData();
+    // 同じIDが2つあると保存で失敗する(途中まで消えたりしないことを確かめる)
+    broken.bucketItems.push({ ...broken.bucketItems[0] });
+
+    await expect(replaceAllData(database, broken)).rejects.toThrow();
+    expect(sortById(await readAllData(database))).toEqual(sortById(fullData()));
+  });
+
+  it('最後に書き出した日時は、読み込みで置き換わらない', async () => {
+    expect(await getLastExportedAt(database)).toBeNull();
+    await setLastExportedAt(database, now);
+    await replaceAllData(database, fullData());
+    expect(await getLastExportedAt(database)).toBe(now.toISOString());
+  });
+});

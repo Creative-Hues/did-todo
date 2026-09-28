@@ -1,0 +1,168 @@
+// バックアップ画面(SPEC.md 12章):書き出し・読み込み・最後に書き出した日時
+import { useRef, useState, type ChangeEvent } from 'react';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
+import { db } from '../db/db';
+import { getLastExportedAt, readAllData, replaceAllData, setLastExportedAt } from '../db/backupRepo';
+import { useLiveQuery } from '../hooks/useLiveQuery';
+import { useNow } from '../hooks/useNow';
+import {
+  backupFileName,
+  backupReminderText,
+  buildBackup,
+  parseBackup,
+  serializeBackup,
+  type BackupFile,
+} from '../lib/backup';
+import { formatDateTime } from '../lib/timeFormat';
+
+interface Props {
+  onBack: () => void;
+}
+
+/** 画面の下に出すお知らせ(成功・失敗) */
+type Notice = { kind: 'success' | 'error'; text: string } | null;
+
+/** 共有シートでファイルを渡せるか */
+function canShareFile(file: File): boolean {
+  return typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
+}
+
+/** ダウンロードとして保存する(共有シートが使えない環境用) */
+function downloadFile(file: File): void {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  link.click();
+  // ダウンロードが始まるまで少し待ってから片付ける
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+export function BackupScreen({ onBack }: Props) {
+  const now = useNow();
+  const lastExportedAt = useLiveQuery(() => getLastExportedAt(db));
+  // 書き出すデータは先に読んでおく。iPhone では、ボタンを押してから共有シートを開くまでに
+  // 時間がかかると共有が拒否されるため、押した瞬間にすぐファイルを作れるようにする
+  const currentData = useLiveQuery(() => readAllData(db));
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [pendingImport, setPendingImport] = useState<BackupFile | null>(null);
+  const [notice, setNotice] = useState<Notice>(null);
+
+  const handleExport = async () => {
+    if (!currentData) {
+      return;
+    }
+    setNotice(null);
+    const exportedAt = new Date();
+    const file = new File([serializeBackup(buildBackup(currentData, exportedAt))], backupFileName(exportedAt), {
+      type: 'application/json',
+    });
+    try {
+      if (canShareFile(file)) {
+        await navigator.share({ files: [file] });
+      } else {
+        downloadFile(file);
+      }
+      await setLastExportedAt(db, exportedAt);
+      setNotice({ kind: 'success', text: 'バックアップを書き出しました' });
+    } catch (error) {
+      // 共有シートを閉じた(キャンセルした)ときは、何もしない
+      if (error instanceof DOMException && error.name === 'AbortError') {
+        return;
+      }
+      console.error('バックアップの書き出しに失敗しました', error);
+      setNotice({ kind: 'error', text: '書き出しに失敗しました。もう一度お試しください。' });
+    }
+  };
+
+  const handleFileChosen = async (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // 同じファイルをもう一度選んでも反応するように、選択を空に戻す
+    event.target.value = '';
+    if (!file) {
+      return;
+    }
+    setNotice(null);
+    let text: string;
+    try {
+      text = await file.text();
+    } catch (error) {
+      console.error('ファイルを開けませんでした', error);
+      setNotice({ kind: 'error', text: 'ファイルを開けませんでした' });
+      return;
+    }
+    const result = parseBackup(text);
+    if (result.ok) {
+      setPendingImport(result.backup);
+    } else {
+      setNotice({ kind: 'error', text: `読み込めませんでした:${result.reason}` });
+    }
+  };
+
+  const handleImport = async (backup: BackupFile) => {
+    setPendingImport(null);
+    try {
+      await replaceAllData(db, backup.data);
+      setNotice({ kind: 'success', text: 'バックアップを読み込みました' });
+    } catch (error) {
+      console.error('バックアップの読み込みに失敗しました', error);
+      setNotice({ kind: 'error', text: '読み込みに失敗しました。今のデータは変わっていません。' });
+    }
+  };
+
+  const reminder = lastExportedAt === undefined ? null : backupReminderText(lastExportedAt, now);
+
+  return (
+    <main className="app">
+      <header className="screen-header">
+        <button type="button" onClick={onBack}>
+          ‹ 戻る
+        </button>
+        <h1>バックアップ</h1>
+      </header>
+
+      <section className="settings-section">
+        <h2>書き出し</h2>
+        <p className="backup-text">すべてのデータを1つのファイルにして保存します。</p>
+        <p className="backup-text">
+          最後に書き出した日時:
+          {lastExportedAt === undefined ? '…' : lastExportedAt === null ? 'まだありません' : formatDateTime(lastExportedAt)}
+        </p>
+        {reminder && <p className="backup-reminder">{reminder}</p>}
+        <button type="button" className="add-button" disabled={!currentData} onClick={handleExport}>
+          書き出す
+        </button>
+      </section>
+
+      <section className="settings-section">
+        <h2>読み込み</h2>
+        <p className="backup-text">書き出したファイルを選ぶと、今のデータをすべてファイルの中身に置き換えます。</p>
+        <button type="button" className="add-button" onClick={() => fileInput.current?.click()}>
+          ファイルを選んで読み込む
+        </button>
+        <input
+          ref={fileInput}
+          type="file"
+          accept="application/json,.json"
+          hidden
+          onChange={handleFileChosen}
+        />
+      </section>
+
+      {notice && (
+        <p className={notice.kind === 'error' ? 'form-error' : 'backup-success'} role="status">
+          {notice.text}
+        </p>
+      )}
+
+      {pendingImport && (
+        <ConfirmDialog
+          message={`${formatDateTime(pendingImport.exportedAt)} に書き出したバックアップです。今のデータはすべて置き換わります。読み込みますか?`}
+          confirmLabel="置き換える"
+          onConfirm={() => handleImport(pendingImport)}
+          onCancel={() => setPendingImport(null)}
+        />
+      )}
+    </main>
+  );
+}

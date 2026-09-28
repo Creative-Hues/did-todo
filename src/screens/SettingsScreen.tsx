@@ -5,10 +5,15 @@ import { TaskList } from '../components/settings/TaskList';
 import { db } from '../db/db';
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { AlterEditScreen } from './AlterEditScreen';
+import { BackupScreen } from './BackupScreen';
 import { TaskEditScreen } from './TaskEditScreen';
 
 /** 表示中の画面:一覧 / 人格の編集 / タスクの編集(id が null なら新規追加) */
-type View = { kind: 'list' } | { kind: 'alter'; id: string | null } | { kind: 'task'; id: string | null };
+type View =
+  | { kind: 'list' }
+  | { kind: 'alter'; id: string | null }
+  | { kind: 'task'; id: string | null }
+  | { kind: 'backup' };
 
 interface Props {
   onBack: () => void;
@@ -46,6 +51,9 @@ export function SettingsScreen({ onBack }: Props) {
       return <AlterEditScreen key={view.id ?? 'new'} alter={alter} onBack={backToList} />;
     }
   }
+  if (view.kind === 'backup') {
+    return <BackupScreen onBack={backToList} />;
+  }
   if (view.kind === 'task') {
     const task = tasks.find((t) => t.id === view.id);
     if (view.id === null || task) {
@@ -72,6 +80,10 @@ export function SettingsScreen({ onBack }: Props) {
         onAdd={() => open({ kind: 'task', id: null })}
         onOpen={(task) => open({ kind: 'task', id: task.id })}
       />
+      {/* 一時的な入口。フェーズ7 段階Dで人格情報タブへ移す */}
+      <button type="button" className="add-button" onClick={() => open({ kind: 'backup' })}>
+        バックアップ
+      </button>
     </main>
   );
 }

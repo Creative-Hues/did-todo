@@ -9,6 +9,12 @@ function formatClock(date: Date): string {
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
+/** 「2026/9/28 21:30」形式(実際の日時) */
+export function formatDateTime(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()} ${formatClock(date)}`;
+}
+
 /**
  * 完了時刻を欄に合わせた形式で表す。
  * - 今日:「9:12」

@@ -400,3 +400,21 @@ input[type='color'] {
   color: #c00;
   font-weight: bold;
 }
+
+/* ---- フェーズ7:バックアップ画面 ---- */
+
+.backup-text {
+  margin: 0 0 12px;
+}
+
+/* 書き出しをすすめる表示(目立つ色) */
+.backup-reminder {
+  margin: 0 0 12px;
+  color: #b35900;
+  font-weight: bold;
+}
+
+.backup-success {
+  color: #2a7a2a;
+  margin: 0 0 12px;
+}
