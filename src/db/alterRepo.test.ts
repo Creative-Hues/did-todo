@@ -128,6 +128,32 @@ describe('人格の保存', () => {
       expect(await database.alters.count()).toBe(2);
     });
 
+    it('バケットのリストの項目がある人格・協力者に入っている人格は削除されない(削除済みの項目も数える)', async () => {
+      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
+      const b = await addAlter(database, { name: 'B', color: '#222222' }, now);
+      const c = await addAlter(database, { name: 'C', color: '#333333' }, now);
+      // A のリストの削除済みの項目で、B が協力者。C はどこにも出てこない
+      await database.bucketItems.add({
+        id: 'b1',
+        alterId: a.id,
+        body: '海を見に行く',
+        order: 0,
+        createdAt: now.toISOString(),
+        achievedAt: now.toISOString(),
+        helperAlterIds: [b.id],
+        deletedAt: now.toISOString(),
+      });
+
+      expect(await countAlterRecords(database, a.id)).toBe(1);
+      expect(await deleteAlter(database, a.id)).toBe(false);
+      expect(await countAlterRecords(database, b.id)).toBe(1);
+      expect(await deleteAlter(database, b.id)).toBe(false);
+      expect(await countAlterRecords(database, c.id)).toBe(0);
+      expect(await deleteAlter(database, c.id)).toBe(true);
+      expect(await database.alters.count()).toBe(2);
+      expect(await database.bucketItems.count()).toBe(1);
+    });
+
     it('服薬記録だけがある人格も削除されない', async () => {
       const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
       await database.medicationIntakes.add({

@@ -124,6 +124,17 @@ function fullData(): BackupData {
         achievedAt: '2026-09-25T01:00:00.000Z',
         helperAlterIds: ['alter-b'],
       },
+      // 削除済みの項目(deletedAt。SPEC.md 9.3)も、そのまま元どおりになる
+      {
+        id: 'b3',
+        alterId: 'alter-b',
+        body: '山に登る',
+        order: 1,
+        createdAt,
+        achievedAt: '2026-09-26T01:00:00.000Z',
+        helperAlterIds: ['alter-a'],
+        deletedAt: '2026-09-27T01:00:00.000Z',
+      },
     ],
   };
 }

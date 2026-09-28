@@ -52,8 +52,9 @@ export async function reorderAlters(database: AppDatabase, orderedIds: readonly 
 }
 
 /**
- * その人格の完了記録・服薬記録・受診メモ・コメントの件数の合計(SPEC.md 3.1)。
- * 全件を見て数える(記録は1年分だけ、メモとコメントも多くはならないため)
+ * その人格の完了記録・服薬記録・受診メモ・コメント・バケットの件数の合計(SPEC.md 3.1)。
+ * バケットは、その人格のリストの項目(削除済みも含む)と、協力者に入っている項目を数える。
+ * 全件を見て数える(記録は1年分だけ、メモ・コメント・バケットも多くはならないため)
  */
 export async function countAlterRecords(database: AppDatabase, id: string): Promise<number> {
   const counts = await Promise.all([
@@ -61,13 +62,14 @@ export async function countAlterRecords(database: AppDatabase, id: string): Prom
     database.medicationIntakes.filter((intake) => intake.alterId === id).count(),
     database.clinicNotes.filter((note) => note.alterId === id).count(),
     database.clinicNoteComments.filter((comment) => comment.alterId === id).count(),
+    database.bucketItems.filter((item) => item.alterId === id || item.helperAlterIds.includes(id)).count(),
   ]);
   return counts.reduce((sum, count) => sum + count, 0);
 }
 
 /**
  * 人格を削除し、すべてのタスクの「気にしている人格」からも外す。
- * 完了記録・服薬記録・受診メモ・コメントのどれかが1件でもある人格は削除せず false を返す
+ * 完了記録・服薬記録・受診メモ・コメント・バケットのどれかが1件でもある人格は削除せず false を返す
  * (削除したら true。SPEC.md 3.1)
  */
 export async function deleteAlter(database: AppDatabase, id: string): Promise<boolean> {
@@ -78,6 +80,7 @@ export async function deleteAlter(database: AppDatabase, id: string): Promise<bo
     database.medicationIntakes,
     database.clinicNotes,
     database.clinicNoteComments,
+    database.bucketItems,
   ];
   return database.transaction('rw', tables, async () => {
     if ((await countAlterRecords(database, id)) > 0) {

@@ -174,6 +174,8 @@ const bucketItemSchema: Schema<BucketItem> = {
   createdAt: isString,
   achievedAt: isNullableString,
   helperAlterIds: isStringArray,
+  // フェーズ11で追加。ないファイルは「削除していない」として読み込む(SPEC.md 12章)
+  deletedAt: optional(isString),
 };
 
 /** バックアップに入れるデータ(端末の設定は入れない) */

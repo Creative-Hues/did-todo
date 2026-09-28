@@ -273,6 +273,60 @@ describe('受診メモのコメント(フェーズ10で追加。SPEC.md 12章)',
   });
 });
 
+describe('バケットの削除済みの印(フェーズ11で追加。SPEC.md 12章)', () => {
+  /** 削除していない項目と、削除済みの項目が入ったデータ */
+  function dataWithBucket(): BackupData {
+    const data = emptyData();
+    data.bucketItems.push(
+      {
+        id: 'b1',
+        alterId: 'alter-a',
+        body: '海を見に行く',
+        order: 0,
+        createdAt: '2026-09-01T00:00:00.000Z',
+        achievedAt: null,
+        helperAlterIds: [],
+      },
+      {
+        id: 'b2',
+        alterId: 'alter-a',
+        body: '山に登る',
+        order: 1,
+        createdAt: '2026-09-01T00:00:00.000Z',
+        achievedAt: '2026-09-20T00:00:00.000Z',
+        helperAlterIds: ['alter-b'],
+        deletedAt: '2026-09-27T00:00:00.000Z',
+      },
+    );
+    return data;
+  }
+
+  it('削除済みの印も、書き出したとおりに読み込める', () => {
+    const result = parseBackup(serializeBackup(buildBackup(dataWithBucket(), now)));
+    expect(result.ok && result.backup.data).toEqual(dataWithBucket());
+  });
+
+  it('削除済みの印がない古いファイルは、「削除していない」として読み込む', () => {
+    const json = exportedJson(dataWithBucket());
+    const items = (json.data as { bucketItems: Record<string, unknown>[] }).bucketItems;
+    for (const item of items) {
+      delete item.deletedAt;
+    }
+    const result = parseBackup(JSON.stringify(json));
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    expect(result.backup.data.bucketItems.map((item) => item.deletedAt)).toEqual([undefined, undefined]);
+    expect('deletedAt' in result.backup.data.bucketItems[1]).toBe(false);
+  });
+
+  it('削除済みの印が文字でなければ読み込まない', () => {
+    const json = exportedJson(dataWithBucket());
+    (json.data as { bucketItems: Record<string, unknown>[] }).bucketItems[0].deletedAt = 123;
+    expect(parseBackup(JSON.stringify(json))).toEqual({ ok: false, reason: '「バケット」の1件目の形が正しくありません' });
+  });
+});
+
 describe('書き出しのすすめ', () => {
   it('一度も書き出していなければすすめる', () => {
     expect(isBackupOverdue(null, now)).toBe(true);

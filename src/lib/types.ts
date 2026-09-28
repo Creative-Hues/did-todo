@@ -191,6 +191,11 @@ export interface BucketItem {
   achievedAt: string | null;
   /** 協力してくれた人格のID(本人は含めない) */
   helperAlterIds: string[];
+  /**
+   * 削除した日時(ISO形式。SPEC.md 9.3)。ない項目は「削除していない」。
+   * 削除しても協力の記録を集計に残すため、項目は消さずにこの印を付けて一覧から隠す
+   */
+  deletedAt?: string;
 }
 
 /** 端末の設定(キーと値)。バックアップには含めない */
