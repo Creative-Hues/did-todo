@@ -23,6 +23,7 @@ export function TimingList({ timings, onAdd, onOpen }: Props) {
   return (
     <section className="settings-section">
       <h2>時間帯</h2>
+      <p className="settings-note">この並び順が、記録画面の欄の順番になります。</p>
       <button type="button" className="add-button" onClick={onAdd}>
         ＋ 時間帯を追加
       </button>

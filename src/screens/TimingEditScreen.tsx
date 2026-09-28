@@ -109,6 +109,7 @@ export function TimingEditScreen({ timing, onBack }: Props) {
           <button type="button" onClick={() => handleToggleHidden(timing)}>
             {timing.hidden ? '再表示する' : '非表示にする'}
           </button>
+          <p className="edit-actions__note">非表示にすると、薬の登録で選べなくなります。記録はそのまま残ります。</p>
           <button
             type="button"
             className="danger-button"

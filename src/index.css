@@ -681,3 +681,10 @@ body {
   font-size: 0.875rem;
   overflow-wrap: anywhere; /* 長い理由でも行がはみ出さないようにする */
 }
+
+/* 設定の一覧の上の説明(小さな灰色の文字。edit-actions__note と同じ見た目) */
+.settings-note {
+  margin: 0 0 12px;
+  font-size: 0.875rem;
+  color: #888;
+}
