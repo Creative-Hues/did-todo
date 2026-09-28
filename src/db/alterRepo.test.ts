@@ -102,6 +102,32 @@ describe('人格の保存', () => {
       expect((await database.tasks.get(task.id))?.careAlterIds).toEqual([a.id]);
     });
 
+    it('受診メモだけ、またはコメントだけがある人格も削除されない', async () => {
+      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
+      const b = await addAlter(database, { name: 'B', color: '#222222' }, now);
+      await database.clinicNotes.add({
+        id: 'n1',
+        alterId: a.id,
+        categoryId: 'nc-1',
+        body: '頭痛',
+        createdAt: now.toISOString(),
+        discussedAt: null,
+      });
+      await database.clinicNoteComments.add({
+        id: 'c1',
+        noteId: 'n1',
+        alterId: b.id,
+        body: '私も',
+        createdAt: now.toISOString(),
+      });
+
+      expect(await countAlterRecords(database, a.id)).toBe(1);
+      expect(await deleteAlter(database, a.id)).toBe(false);
+      expect(await countAlterRecords(database, b.id)).toBe(1);
+      expect(await deleteAlter(database, b.id)).toBe(false);
+      expect(await database.alters.count()).toBe(2);
+    });
+
     it('服薬記録だけがある人格も削除されない', async () => {
       const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
       await database.medicationIntakes.add({

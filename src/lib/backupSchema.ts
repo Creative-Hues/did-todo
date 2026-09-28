@@ -8,6 +8,7 @@ import type {
   BucketItem,
   ClinicNote,
   ClinicNoteCategory,
+  ClinicNoteComment,
   CompletionRecord,
   Cycle,
   Medication,
@@ -148,6 +149,14 @@ const stockLogSchema: Schema<StockLog> = {
   at: isString,
 };
 
+const clinicNoteCommentSchema: Schema<ClinicNoteComment> = {
+  id: isString,
+  noteId: isString,
+  alterId: isNullableString,
+  body: isString,
+  createdAt: isString,
+};
+
 const clinicNoteSchema: Schema<ClinicNote> = {
   id: isString,
   alterId: isNullableString,
@@ -180,6 +189,7 @@ export interface BackupData {
   stockLogs: StockLog[];
   clinicNotes: ClinicNote[];
   clinicNoteCategories: ClinicNoteCategory[];
+  clinicNoteComments: ClinicNoteComment[];
   bucketItems: BucketItem[];
 }
 
@@ -196,6 +206,7 @@ const TABLES: { [K in keyof BackupData]: { label: string; schema: Schema<BackupD
   stockLogs: { label: '在庫の履歴', schema: stockLogSchema },
   clinicNotes: { label: '受診メモ', schema: clinicNoteSchema },
   clinicNoteCategories: { label: '受診メモの分類', schema: namedItemSchema },
+  clinicNoteComments: { label: '受診メモのコメント', schema: clinicNoteCommentSchema },
   bucketItems: { label: 'バケット', schema: bucketItemSchema },
 };
 
@@ -246,10 +257,12 @@ function parseTable<K extends keyof BackupData>(name: K, rows: unknown): BackupD
 }
 
 /**
- * 薬と服薬記録が、時間帯の一覧にない時間帯を指していないか確かめる(SPEC.md 12章)。
+ * ほかのデータを指す項目が、ファイルの中にあるデータを指しているか確かめる(SPEC.md 12章)。
+ * - 薬と服薬記録の時間帯が、時間帯の一覧にあるか
+ * - コメントのメモが、受診メモにあるか
  * だめなときは理由の文字列を返す
  */
-function checkTimingReferences(data: BackupData): string | null {
+function checkReferences(data: BackupData): string | null {
   const timingIds = new Set(data.medicationTimings.map((timing) => timing.id));
   const medicationIndex = data.medications.findIndex((m) => m.timings.some((id) => !timingIds.has(id)));
   if (medicationIndex >= 0) {
@@ -259,13 +272,37 @@ function checkTimingReferences(data: BackupData): string | null {
   if (intakeIndex >= 0) {
     return `「服薬記録」の${intakeIndex + 1}件目の時間帯が見つかりません`;
   }
+  const noteIds = new Set(data.clinicNotes.map((note) => note.id));
+  const commentIndex = data.clinicNoteComments.findIndex((c) => !noteIds.has(c.noteId));
+  if (commentIndex >= 0) {
+    return `「受診メモのコメント」の${commentIndex + 1}件目のメモが見つかりません`;
+  }
   return null;
 }
 
 /**
+ * あとのフェーズで足したテーブルがない古いファイルのとき、そのテーブルの中身を決める(SPEC.md 12章)。
+ * - 服薬の時間帯の一覧(フェーズ9段階Eで追加):最初の4つの時間帯。作成日時は書き出した日時
+ * - 受診メモのコメント(フェーズ10で追加):コメントなし
+ * ほかのテーブルは、ないときはそのまま(読み込まない)
+ */
+function rowsOf(name: keyof BackupData, value: Record<string, unknown>, exportedAt: string): unknown {
+  if (value[name] !== undefined) {
+    return value[name];
+  }
+  switch (name) {
+    case 'medicationTimings':
+      return buildInitialMedicationTimings(exportedAt);
+    case 'clinicNoteComments':
+      return [];
+    default:
+      return undefined;
+  }
+}
+
+/**
  * データ部分全体をチェックする。だめなときは理由の文字列を返す
- * @param exportedAt ファイルを書き出した日時。服薬の時間帯の一覧がない古いファイル(フェーズ9段階Eより前)は、
- *   最初の4つの時間帯が入っているものとして読み込み、その作成日時に使う(SPEC.md 12章)
+ * @param exportedAt ファイルを書き出した日時(古いファイルに足りないテーブルを補うのに使う)
  */
 export function parseBackupData(value: unknown, exportedAt: string): BackupData | string {
   if (!isRecord(value)) {
@@ -273,13 +310,11 @@ export function parseBackupData(value: unknown, exportedAt: string): BackupData 
   }
   const data: Partial<Record<keyof BackupData, unknown>> = {};
   for (const name of BACKUP_TABLE_NAMES) {
-    const rows =
-      name === 'medicationTimings' && value[name] === undefined ? buildInitialMedicationTimings(exportedAt) : value[name];
-    const parsed = parseTable(name, rows);
+    const parsed = parseTable(name, rowsOf(name, value, exportedAt));
     if (typeof parsed === 'string') {
       return parsed;
     }
     data[name] = parsed;
   }
-  return checkTimingReferences(data as BackupData) ?? (data as BackupData);
+  return checkReferences(data as BackupData) ?? (data as BackupData);
 }

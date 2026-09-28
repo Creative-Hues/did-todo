@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { normalizeName, parseDosePerTake, parseEveryNDays, parseStockCount, parseTabletCount } from './validation';
+import {
+  isDuplicateName,
+  normalizeName,
+  parseDosePerTake,
+  parseEveryNDays,
+  parseStockCount,
+  parseTabletCount,
+} from './validation';
 
 describe('名前のチェック', () => {
   it('前後の空白を取り除く', () => {
@@ -72,5 +79,23 @@ describe('薬の錠数の入力チェック', () => {
     expect(parseStockCount('0.5')).toBe(0.5);
     expect(parseStockCount('28')).toBe(28);
     expect(parseStockCount('-0.5')).toBeNull();
+  });
+});
+
+describe('同じ名前のチェック(服薬の時間帯・受診メモの分類)', () => {
+  const items = [
+    { id: 'a', name: '体調' },
+    { id: 'b', name: '睡眠 ' },
+  ];
+
+  it('ほかの項目と同じ名前なら true(保存されている名前の前後の空白は無視する)', () => {
+    expect(isDuplicateName('体調', items)).toBe(true);
+    expect(isDuplicateName('睡眠', items)).toBe(true);
+    expect(isDuplicateName('気分', items)).toBe(false);
+  });
+
+  it('名前を変えている項目自身とは比べない', () => {
+    expect(isDuplicateName('体調', items, 'a')).toBe(false);
+    expect(isDuplicateName('睡眠', items, 'a')).toBe(true);
   });
 });

@@ -51,21 +51,34 @@ export async function reorderAlters(database: AppDatabase, orderedIds: readonly 
   });
 }
 
-/** その人格の完了記録と服薬記録の件数の合計(記録は1年分だけなので、全件を見て数える) */
+/**
+ * その人格の完了記録・服薬記録・受診メモ・コメントの件数の合計(SPEC.md 3.1)。
+ * 全件を見て数える(記録は1年分だけ、メモとコメントも多くはならないため)
+ */
 export async function countAlterRecords(database: AppDatabase, id: string): Promise<number> {
-  const [records, intakes] = await Promise.all([
+  const counts = await Promise.all([
     database.records.filter((record) => record.alterId === id).count(),
     database.medicationIntakes.filter((intake) => intake.alterId === id).count(),
+    database.clinicNotes.filter((note) => note.alterId === id).count(),
+    database.clinicNoteComments.filter((comment) => comment.alterId === id).count(),
   ]);
-  return records + intakes;
+  return counts.reduce((sum, count) => sum + count, 0);
 }
 
 /**
  * 人格を削除し、すべてのタスクの「気にしている人格」からも外す。
- * 完了記録か服薬記録が1件でもある人格は削除せず false を返す(削除したら true。SPEC.md 3.1)
+ * 完了記録・服薬記録・受診メモ・コメントのどれかが1件でもある人格は削除せず false を返す
+ * (削除したら true。SPEC.md 3.1)
  */
 export async function deleteAlter(database: AppDatabase, id: string): Promise<boolean> {
-  const tables = [database.alters, database.tasks, database.records, database.medicationIntakes];
+  const tables = [
+    database.alters,
+    database.tasks,
+    database.records,
+    database.medicationIntakes,
+    database.clinicNotes,
+    database.clinicNoteComments,
+  ];
   return database.transaction('rw', tables, async () => {
     if ((await countAlterRecords(database, id)) > 0) {
       return false;

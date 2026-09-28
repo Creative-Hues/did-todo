@@ -7,6 +7,7 @@ import type {
   BucketItem,
   ClinicNote,
   ClinicNoteCategory,
+  ClinicNoteComment,
   CompletionRecord,
   Medication,
   MedicationIntake,
@@ -35,6 +36,7 @@ export class AppDatabase extends Dexie {
   stockLogs!: EntityTable<StockLog, 'id'>;
   clinicNotes!: EntityTable<ClinicNote, 'id'>;
   clinicNoteCategories!: EntityTable<ClinicNoteCategory, 'id'>;
+  clinicNoteComments!: EntityTable<ClinicNoteComment, 'id'>;
   bucketItems!: EntityTable<BucketItem, 'id'>;
   meta!: EntityTable<AppMeta, 'key'>;
 
@@ -72,7 +74,10 @@ export class AppDatabase extends Dexie {
     this.version(3)
       .stores({ medicationTimings: 'id, order' })
       .upgrade((tx) => addInitialMedicationTimings(tx, new Date()));
-    // 新しく入れたとき(版1〜3の upgrade を通らない)も、同じ最初のデータを入れる
+    // 版4:SPEC.md 3.5・8.4。受診メモのコメントのテーブルを足す
+    // 空のテーブルを足すだけなので、変換の処理はない(今のデータには手を触れない)
+    this.version(4).stores({ clinicNoteComments: 'id, noteId, createdAt' });
+    // 新しく入れたとき(版1〜4の upgrade を通らない)も、同じ最初のデータを入れる
     this.on('populate', async (tx) => {
       const now = new Date();
       await addInitialData(tx, now);

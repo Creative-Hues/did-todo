@@ -166,6 +166,18 @@ export interface ClinicNote {
   discussedAt: string | null;
 }
 
+/** 受診メモのコメント(永続データ。SPEC.md 8.4) */
+export interface ClinicNoteComment {
+  id: string;
+  /** どのメモへのコメントか */
+  noteId: string;
+  /** 書いた人格のID。「わからない」の場合は null */
+  alterId: string | null;
+  body: string;
+  /** 書いた日時(ISO形式) */
+  createdAt: string;
+}
+
 /** バケットの項目(永続データ。SPEC.md 9章) */
 export interface BucketItem {
   id: string;

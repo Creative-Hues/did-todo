@@ -16,6 +16,7 @@ function backupTables(database: AppDatabase) {
     database.stockLogs,
     database.clinicNotes,
     database.clinicNoteCategories,
+    database.clinicNoteComments,
     database.bucketItems,
   ];
 }
@@ -34,6 +35,7 @@ export async function readAllData(database: AppDatabase): Promise<BackupData> {
     stockLogs: await database.stockLogs.toArray(),
     clinicNotes: await database.clinicNotes.toArray(),
     clinicNoteCategories: await database.clinicNoteCategories.toArray(),
+    clinicNoteComments: await database.clinicNoteComments.toArray(),
     bucketItems: await database.bucketItems.toArray(),
   }));
 }
@@ -57,6 +59,7 @@ export async function replaceAllData(database: AppDatabase, data: BackupData): P
     await database.stockLogs.bulkAdd(data.stockLogs);
     await database.clinicNotes.bulkAdd(data.clinicNotes);
     await database.clinicNoteCategories.bulkAdd(data.clinicNoteCategories);
+    await database.clinicNoteComments.bulkAdd(data.clinicNoteComments);
     await database.bucketItems.bulkAdd(data.bucketItems);
   });
 }

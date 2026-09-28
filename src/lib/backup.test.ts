@@ -24,6 +24,7 @@ function emptyData(): BackupData {
     stockLogs: [],
     clinicNotes: [],
     clinicNoteCategories: [],
+    clinicNoteComments: [],
     bucketItems: [],
   };
 }
@@ -213,6 +214,61 @@ describe('服薬の時間帯(フェーズ9段階Eで追加。SPEC.md 12章)', ()
     expect(parseBackup(serializeBackup(buildBackup(data, now)))).toEqual({
       ok: false,
       reason: '「服薬記録」の1件目の時間帯が見つかりません',
+    });
+  });
+});
+
+describe('受診メモのコメント(フェーズ10で追加。SPEC.md 12章)', () => {
+  /** メモ1件と、そのコメント1件が入ったデータ */
+  function dataWithComment(): BackupData {
+    const data = emptyData();
+    data.clinicNoteCategories.push({ id: 'nc-1', name: '体調', order: 0, createdAt: '' });
+    data.clinicNotes.push({
+      id: 'n1',
+      alterId: null,
+      categoryId: 'nc-1',
+      body: '朝起きると頭が痛い',
+      createdAt: '2026-09-27T12:00:00.000Z',
+      discussedAt: null,
+    });
+    data.clinicNoteComments.push({
+      id: 'cm1',
+      noteId: 'n1',
+      alterId: null,
+      body: '私も同じ',
+      createdAt: '2026-09-27T13:00:00.000Z',
+    });
+    return data;
+  }
+
+  it('コメントがない古いファイルは、「コメントなし」として読み込む', () => {
+    const json = exportedJson(dataWithComment());
+    delete (json.data as Record<string, unknown>).clinicNoteComments;
+    const result = parseBackup(JSON.stringify(json));
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    expect(result.backup.data.clinicNoteComments).toEqual([]);
+    expect(result.backup.data.clinicNotes).toEqual(dataWithComment().clinicNotes);
+  });
+
+  it('コメントも、書き出したとおりに読み込める', () => {
+    const result = parseBackup(serializeBackup(buildBackup(dataWithComment(), now)));
+    expect(result.ok && result.backup.data).toEqual(dataWithComment());
+  });
+
+  it('コメントがあっても配列でなければ読み込まない', () => {
+    const json = exportedJson(dataWithComment());
+    (json.data as Record<string, unknown>).clinicNoteComments = {};
+    expect(parseBackup(JSON.stringify(json))).toEqual({ ok: false, reason: '「受診メモのコメント」のデータがありません' });
+  });
+
+  it('ないメモを指しているコメントがあるファイルは読み込まない', () => {
+    const data = dataWithComment();
+    data.clinicNotes = [];
+    expect(parseBackup(serializeBackup(buildBackup(data, now)))).toEqual({
+      ok: false,
+      reason: '「受診メモのコメント」の1件目のメモが見つかりません',
     });
   });
 });

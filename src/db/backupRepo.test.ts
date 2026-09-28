@@ -112,6 +112,8 @@ function fullData(): BackupData {
       },
     ],
     clinicNoteCategories: [{ id: 'nc-1', name: '睡眠', order: 0, createdAt }],
+    // 改行のあるコメント
+    clinicNoteComments: [{ id: 'cm1', noteId: 'n1', alterId: 'alter-b', body: '私も同じ\n朝がつらい', createdAt }],
     bucketItems: [
       {
         id: 'b1',

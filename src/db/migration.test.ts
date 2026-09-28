@@ -41,6 +41,13 @@ function openV2(): Dexie {
   return v2;
 }
 
+/** 版3のときの定義(db.ts の version(1)〜version(3) と同じ) */
+function openV3(): Dexie {
+  const v3 = openV2();
+  v3.version(3).stores({ medicationTimings: 'id, order' });
+  return v3;
+}
+
 /** 最初の4つの時間帯の ID・名前・並び順・非表示(作成日時は版を上げた時刻なので比べない) */
 const DEFAULT_TIMING_ROWS = [
   ['morning', '朝食後', 0, false],
@@ -103,7 +110,7 @@ describe('データベースの版を上げる', () => {
     database = new AppDatabase(DB_NAME);
     await database.open();
 
-    expect(database.verno).toBe(3);
+    expect(database.verno).toBe(4);
     expect(await database.alters.orderBy('order').toArray()).toEqual([
       { ...alterA, reading: '', categoryId: null, age: '', gender: '', identify: '' },
       { ...alterB, reading: '', categoryId: null, age: '', gender: '', identify: '' },
@@ -230,7 +237,7 @@ describe('データベースの版を上げる', () => {
       database = new AppDatabase(DB_NAME);
       await database.open();
 
-      expect(database.verno).toBe(3);
+      expect(database.verno).toBe(4);
       expect(await timingRows(database)).toEqual(DEFAULT_TIMING_ROWS);
       expect(await database.medications.orderBy('order').toArray()).toEqual(medications);
       expect(await database.medicationIntakes.orderBy('id').toArray()).toEqual(intakes);
@@ -248,7 +255,7 @@ describe('データベースの版を上げる', () => {
 
       database = new AppDatabase(DB_NAME);
       await database.open();
-      expect(database.verno).toBe(3);
+      expect(database.verno).toBe(4);
       expect(await timingRows(database)).toEqual(DEFAULT_TIMING_ROWS);
     });
 
@@ -258,6 +265,144 @@ describe('データベースの版を上げる', () => {
       database.close();
       database = new AppDatabase(DB_NAME);
       expect(await timingRows(database)).toEqual(DEFAULT_TIMING_ROWS);
+    });
+  });
+
+  describe('版3 → 版4(受診メモのコメント。SPEC.md 3.5・8.4)', () => {
+    /** 版3のすべてのテーブルに入れておくデータ */
+    const v3Rows: Record<string, object[]> = {
+      alters: [{ ...alterA, reading: '', categoryId: 'cat-1', age: '', gender: '', identify: '' }],
+      tasks: [task],
+      records,
+      categories: [{ id: 'cat-1', name: '主人格', order: 0, createdAt: '2026-09-01T00:00:00.000Z' }],
+      profileSections: [
+        {
+          id: 'p1',
+          alterId: 'alter-a',
+          title: '特徴',
+          body: '',
+          includeInPdf: true,
+          order: 0,
+          createdAt: '2026-09-01T00:00:00.000Z',
+        },
+      ],
+      medicationTimings: [{ id: 'morning', name: '朝食後', hidden: false, order: 0, createdAt: '2026-09-01T00:00:00.000Z' }],
+      medications: [
+        {
+          id: 'med-1',
+          name: '薬A',
+          kind: 'scheduled',
+          timings: ['morning'],
+          dosePerTake: 1,
+          remaining: 13,
+          status: 'active',
+          order: 0,
+          createdAt: '2026-09-01T00:00:00.000Z',
+        },
+      ],
+      medicationIntakes: [
+        {
+          id: 'i1',
+          medicationId: 'med-1',
+          alterId: 'alter-a',
+          takenAt: '2026-09-27T00:00:00.000Z',
+          timing: 'morning',
+          deducted: 1,
+          reason: '',
+        },
+      ],
+      stockLogs: [{ id: 's1', medicationId: 'med-1', kind: 'initial', amount: 14, at: '2026-09-01T00:00:00.000Z' }],
+      clinicNoteCategories: [{ id: 'nc-1', name: '体調', order: 0, createdAt: '2026-09-01T00:00:00.000Z' }],
+      clinicNotes: [
+        // まだ話していないメモ(改行あり)・話したメモ・「わからない」のメモ
+        {
+          id: 'n1',
+          alterId: 'alter-a',
+          categoryId: 'nc-1',
+          body: '朝起きると頭が痛い\n2週間くらい前から',
+          createdAt: '2026-09-20T00:00:00.000Z',
+          discussedAt: null,
+        },
+        {
+          id: 'n2',
+          alterId: 'alter-a',
+          categoryId: 'nc-1',
+          body: '食欲がない',
+          createdAt: '2026-09-21T00:00:00.000Z',
+          discussedAt: '2026-09-25T00:00:00.000Z',
+        },
+        {
+          id: 'n3',
+          alterId: null,
+          categoryId: 'nc-1',
+          body: '記憶がとぶ',
+          createdAt: '2026-09-22T00:00:00.000Z',
+          discussedAt: null,
+        },
+      ],
+      bucketItems: [
+        {
+          id: 'b1',
+          alterId: 'alter-a',
+          body: '海を見に行く',
+          order: 0,
+          createdAt: '2026-09-01T00:00:00.000Z',
+          achievedAt: null,
+          helperAlterIds: [],
+        },
+      ],
+      meta: [{ key: 'lastBackupExportedAt', value: '2026-09-28T00:00:00.000Z' }],
+    };
+
+    it('版3のすべてのテーブルの中身が1文字も変わらず、コメントのテーブルは空で書き込める', async () => {
+      const v3 = openV3();
+      await v3.open();
+      for (const [name, rows] of Object.entries(v3Rows)) {
+        await v3.table(name).bulkAdd(rows);
+      }
+      v3.close();
+
+      database = new AppDatabase(DB_NAME);
+      await database.open();
+
+      expect(database.verno).toBe(4);
+      for (const [name, rows] of Object.entries(v3Rows)) {
+        expect(await database.table(name).toArray(), name).toEqual(rows);
+      }
+      expect(await database.clinicNoteComments.count()).toBe(0);
+
+      // コメントを書き込めて、開き直しても残る
+      await database.clinicNoteComments.add({
+        id: 'cm1',
+        noteId: 'n1',
+        alterId: null,
+        body: '私も同じ',
+        createdAt: '2026-09-28T00:00:00.000Z',
+      });
+      database.close();
+      database = new AppDatabase(DB_NAME);
+      expect(await database.clinicNoteComments.where('noteId').equals('n1').count()).toBe(1);
+    });
+
+    it('版1から開いても、新しく入れても、コメントは空で、最初のデータは1回だけ入る', async () => {
+      const v1 = openV1();
+      await v1.table('alters').add(alterA);
+      v1.close();
+      database = new AppDatabase(DB_NAME);
+      await database.open();
+      expect(database.verno).toBe(4);
+      expect(await database.clinicNoteComments.count()).toBe(0);
+      expect(await database.clinicNoteCategories.count()).toBe(7);
+      expect(await database.medicationTimings.count()).toBe(4);
+      database.close();
+      await Dexie.delete(DB_NAME);
+
+      database = new AppDatabase(DB_NAME);
+      await database.open();
+      expect(database.verno).toBe(4);
+      expect(await database.clinicNoteComments.count()).toBe(0);
+      expect(await database.clinicNoteCategories.count()).toBe(7);
+      expect(await database.medicationTimings.count()).toBe(4);
     });
   });
 });

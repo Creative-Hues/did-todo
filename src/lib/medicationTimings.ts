@@ -1,5 +1,6 @@
 // 服薬の時間帯の一覧(SPEC.md 7.8)。すべて純粋関数。
 import type { MedicationTiming, MedicationTimingId } from './types';
+import { isDuplicateName } from './validation';
 
 /**
  * 最初の4つの時間帯(SPEC.md 3.5・7.8)。
@@ -41,7 +42,7 @@ export function isDuplicateTimingName(
   timings: readonly MedicationTiming[],
   exceptId?: MedicationTimingId,
 ): boolean {
-  return timings.some((timing) => timing.id !== exceptId && timing.name.trim() === name);
+  return isDuplicateName(name, timings, exceptId);
 }
 
 /**

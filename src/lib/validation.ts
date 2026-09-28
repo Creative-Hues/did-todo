@@ -39,3 +39,16 @@ export function parseDosePerTake(input: string): number | null {
 export function parseStockCount(input: string): number | null {
   return parseTabletCount(input, 0);
 }
+
+/**
+ * 同じ名前の項目がほかにあるか(服薬の時間帯・受診メモの分類で使う。非表示のものとも比べる)
+ * @param name normalizeName 済みの名前
+ * @param exceptId 名前を変えている項目自身のID(追加のときは渡さない)
+ */
+export function isDuplicateName(
+  name: string,
+  items: readonly { id: string; name: string }[],
+  exceptId?: string,
+): boolean {
+  return items.some((item) => item.id !== exceptId && item.name.trim() === name);
+}

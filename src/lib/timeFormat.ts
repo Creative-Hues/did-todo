@@ -88,3 +88,8 @@ export function formatClockInLogicalDay(iso: string, logicalDate: LogicalDate): 
   const clock = formatClockOf(iso);
   return toCalendarDate(new Date(iso)) === logicalDate ? clock : `翌${clock}`;
 }
+
+/** 「2026/9/28」形式(実際の日付。朝5時前でも前の日にしない) */
+export function formatCalendarDateSlash(date: Date): string {
+  return `${date.getFullYear()}/${date.getMonth() + 1}/${date.getDate()}`;
+}
