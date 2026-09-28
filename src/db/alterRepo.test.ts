@@ -32,6 +32,12 @@ describe('人格の保存', () => {
       hidden: false,
       order: 0,
       createdAt: now.toISOString(),
+      // 基本情報は空欄・未分類で始まる
+      reading: '',
+      categoryId: null,
+      age: '',
+      gender: '',
+      identify: '',
     });
     expect(b.order).toBe(1);
   });

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mergeCareAlterIds, resolveCareAlters } from './careAlters';
+import { EMPTY_ALTER_PROFILE } from '../db/initialData';
 import type { Alter } from './types';
 
 describe('気にしている人格の保存内容', () => {
@@ -19,7 +20,7 @@ describe('気にしている人格の保存内容', () => {
 
 describe('ホーム画面の「気にしている人格」のラベル', () => {
   function alter(id: string, order: number, hidden = false): Alter {
-    return { id, name: id, color: '#4a90d9', hidden, order, createdAt: '2026-09-01T00:00:00.000Z' };
+    return { id, name: id, color: '#4a90d9', hidden, order, createdAt: '2026-09-01T00:00:00.000Z', ...EMPTY_ALTER_PROFILE };
   }
 
   it('非表示の人格も含め、人格の order 順に並べる', () => {

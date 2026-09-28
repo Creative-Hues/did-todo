@@ -1,5 +1,6 @@
 // 人格の保存・更新・削除(削除は完了記録がない人格だけ。SPEC.md 3.1)
 import type { AppDatabase } from './db';
+import { EMPTY_ALTER_PROFILE } from './initialData';
 import { nextOrder, reorderSubset } from '../lib/ordering';
 import type { Alter } from '../lib/types';
 
@@ -20,6 +21,7 @@ export async function addAlter(database: AppDatabase, input: AlterInput, now: Da
       hidden: false,
       order: nextOrder(all),
       createdAt: now.toISOString(),
+      ...EMPTY_ALTER_PROFILE,
     };
     await database.alters.add(alter);
     return alter;
