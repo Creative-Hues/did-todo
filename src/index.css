@@ -935,3 +935,16 @@ textarea {
   font-size: 0.875rem;
   color: #888;
 }
+
+/* 「まだ」の1件:中身(タップで編集画面)と「叶った」ボタンを横に並べる */
+.bucket-row {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bucket-row__achieve {
+  flex: 0 0 auto;
+}
