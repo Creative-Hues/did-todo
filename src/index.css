@@ -658,3 +658,26 @@ body {
 .intake-section--done .task-item__previous {
   opacity: 0.45;
 }
+
+/* 記録の一覧の1行(SPEC.md 7.6):左に時刻、右に時間帯・人格・薬・理由 */
+.history-entry__time {
+  flex: 0 0 3.5em;
+  font-weight: bold;
+  line-height: 1.4;
+}
+
+.history-entry__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.history-entry__medication {
+  font-size: 0.875rem;
+}
+
+.history-entry__reason {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere; /* 長い理由でも行がはみ出さないようにする */
+}

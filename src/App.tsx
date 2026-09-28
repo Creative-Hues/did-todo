@@ -5,6 +5,7 @@ import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { TabBar, type TabKey } from './components/common/TabBar';
 import { AlterInfoScreen } from './screens/AlterInfoScreen';
 import { HomeScreen } from './screens/HomeScreen';
+import { MedicationHistoryScreen } from './screens/MedicationHistoryScreen';
 import { MedicationScreen } from './screens/MedicationScreen';
 import { MedicationSettingsScreen } from './screens/MedicationSettingsScreen';
 import { PlaceholderScreen } from './screens/PlaceholderScreen';
@@ -13,8 +14,8 @@ import { TaskSettingsScreen } from './screens/TaskSettingsScreen';
 /** ToDo タブの中の画面:ToDo 画面 / タスク設定 */
 type TodoView = 'home' | 'taskSettings';
 
-/** 服薬タブの中の画面:記録画面 / 薬の設定 */
-type MedicationView = 'record' | 'settings';
+/** 服薬タブの中の画面:記録画面 / 記録の一覧 / 薬の設定 */
+type MedicationView = 'record' | 'history' | 'settings';
 
 function App() {
   const [tab, setTab] = useState<TabKey>('todo');
@@ -44,12 +45,16 @@ function App() {
       ) : (
         <HomeScreen onOpenTaskSettings={() => setTodoView('taskSettings')} />
       ),
-    medication:
-      medicationView === 'settings' ? (
-        <MedicationSettingsScreen onBack={() => setMedicationView('record')} />
-      ) : (
-        <MedicationScreen onOpenSettings={() => setMedicationView('settings')} />
+    medication: {
+      record: (
+        <MedicationScreen
+          onOpenHistory={() => setMedicationView('history')}
+          onOpenSettings={() => setMedicationView('settings')}
+        />
       ),
+      history: <MedicationHistoryScreen onBack={() => setMedicationView('record')} />,
+      settings: <MedicationSettingsScreen onBack={() => setMedicationView('record')} />,
+    }[medicationView],
     clinic: <PlaceholderScreen title="受診メモ" />,
     bucket: <PlaceholderScreen title="バケット" />,
     alters: <AlterInfoScreen />,

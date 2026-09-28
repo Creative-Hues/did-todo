@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCompletionTime, formatElapsed } from './timeFormat';
+import { formatCompletionTime, formatElapsed, formatLogicalDateHeading } from './timeFormat';
 
 /** 2026年のローカル時刻を ISO 形式で作る(month は 1〜12) */
 function iso(month: number, day: number, hour: number, minute: number): string {
@@ -56,5 +56,13 @@ describe('前回からの経過時間', () => {
 
   it('未来の記録は「0分前」として扱う', () => {
     expect(formatElapsed(minutesAgo(-10), now)).toBe('0分前');
+  });
+});
+
+describe('記録の一覧の日の見出し', () => {
+  it('論理日の月日と曜日「9/28(月)」', () => {
+    expect(formatLogicalDateHeading('2026-09-28')).toBe('9/28(月)');
+    expect(formatLogicalDateHeading('2026-10-04')).toBe('10/4(日)');
+    expect(formatLogicalDateHeading('2027-01-01')).toBe('1/1(金)');
   });
 });

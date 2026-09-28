@@ -66,3 +66,14 @@ export function formatCompletionTime(completedAt: string, section: SectionKey): 
       return `${formatMonthDay(completedAt)} ${formatClockOf(completedAt)}`;
   }
 }
+
+/**
+ * 論理日('YYYY-MM-DD')の見出し「9/28(月)」(記録の一覧の日ごとの見出し。SPEC.md 7.6)。
+ * 論理日そのものの月日と曜日を出す(朝5時前の記録も、前の日の見出しの下に入る)
+ */
+export function formatLogicalDateHeading(logicalDate: string): string {
+  const [year, month, day] = logicalDate.split('-').map(Number);
+  // 時差の影響を受けないよう、UTC の日付として曜日を求める
+  const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
+  return `${month}/${day}(${weekday})`;
+}

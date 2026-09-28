@@ -1,6 +1,6 @@
 // 服薬タブの最初の画面(SPEC.md 7章):記録画面
 // 上に時間帯ごと(朝食後/昼食後/夕食後/寝る前)の欄、その下に頓服。中止した薬は出さない(7.7)
-// 「記録の一覧」は段階Dで足す
+// 画面の上に「記録の一覧」(7.6)と「薬の設定」のボタン
 import { useState } from 'react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { AsNeededIntakeSheet } from '../components/medication/AsNeededIntakeSheet';
@@ -32,10 +32,11 @@ type Modal =
   | { kind: 'asNeeded'; medicationId: string };
 
 interface Props {
+  onOpenHistory: () => void;
   onOpenSettings: () => void;
 }
 
-export function MedicationScreen({ onOpenSettings }: Props) {
+export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
   const alters = useLiveQuery(() => db.alters.toArray());
   const medications = useLiveQuery(() => db.medications.toArray());
   const intakes = useLiveQuery(() => db.medicationIntakes.toArray());
@@ -136,6 +137,9 @@ export function MedicationScreen({ onOpenSettings }: Props) {
       <header className="screen-header">
         <h1>服薬</h1>
         <div className="header-buttons">
+          <button type="button" onClick={onOpenHistory}>
+            記録の一覧
+          </button>
           <button type="button" onClick={onOpenSettings}>
             薬の設定
           </button>
