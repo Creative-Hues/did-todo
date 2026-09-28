@@ -1,6 +1,7 @@
 // 完了時刻の表示(SPEC.md 6.1)。純粋関数。
 // 曜日・日付は論理日ではなく、実際の日時(端末のローカル時刻)で表示する。
 import type { SectionKey } from './home';
+import { toCalendarDate, type LogicalDate } from './period';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'] as const;
 
@@ -76,4 +77,14 @@ export function formatLogicalDateHeading(logicalDate: string): string {
   // 時差の影響を受けないよう、UTC の日付として曜日を求める
   const weekday = WEEKDAYS[new Date(Date.UTC(year, month - 1, day)).getUTCDay()];
   return `${month}/${day}(${weekday})`;
+}
+
+/**
+ * 記録の一覧の時刻(SPEC.md 7.6)。実際の時刻で出し、論理日の見出しと実際の日付が違う記録
+ * (朝5時前の記録)には「翌」を付ける。例:9/27 の見出しの下の 9/28 2:00 → 「翌2:00」
+ * @param logicalDate その記録を並べている見出しの論理日
+ */
+export function formatClockInLogicalDay(iso: string, logicalDate: LogicalDate): string {
+  const clock = formatClockOf(iso);
+  return toCalendarDate(new Date(iso)) === logicalDate ? clock : `翌${clock}`;
 }

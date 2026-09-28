@@ -1,4 +1,5 @@
-// 服薬の記録の一覧(SPEC.md 7.6):論理日ごと(新しい日が上)に、誰が・いつ・何を・頓服の理由
+// 服薬の記録の一覧(SPEC.md 7.6):論理日ごと(新しい日が上、1日の中は古い順)に、誰が・いつ・何を・頓服の理由
+// 朝5時前の記録は、時刻の前に「翌」を付ける(行の時刻と、取り消しの確認文の時刻)
 // 決まった時間の記録はタップで時間帯ごとまとめて取り消し(7.4)、頓服は1件ずつ取り消す(7.5)
 import { useState } from 'react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
@@ -43,7 +44,7 @@ export function MedicationHistoryScreen({ onBack }: Props) {
   const handleTap = (logicalDate: LogicalDate, entry: HistoryEntry) => {
     const heading = formatLogicalDateHeading(logicalDate);
     if (entry.kind === 'scheduled') {
-      const label = intakeLabelText(entry.intakes[entry.intakes.length - 1], alterById);
+      const label = intakeLabelText(entry.intakes[entry.intakes.length - 1], alterById, logicalDate);
       setUndoing({
         logicalDate,
         entry,
@@ -51,7 +52,7 @@ export function MedicationHistoryScreen({ onBack }: Props) {
       });
     } else {
       const name = medicationById.get(entry.intake.medicationId)?.name ?? UNKNOWN_MEDICATION_NAME;
-      const label = intakeLabelText(entry.intake, alterById);
+      const label = intakeLabelText(entry.intake, alterById, logicalDate);
       setUndoing({
         logicalDate,
         entry,
@@ -90,6 +91,7 @@ export function MedicationHistoryScreen({ onBack }: Props) {
               <li key={entry.kind === 'scheduled' ? `${entry.timing}` : entry.intake.id}>
                 <HistoryEntryItem
                   entry={entry}
+                  logicalDate={day.logicalDate}
                   medicationById={medicationById}
                   alterById={alterById}
                   onTap={(tapped) => handleTap(day.logicalDate, tapped)}

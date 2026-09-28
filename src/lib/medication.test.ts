@@ -208,7 +208,7 @@ describe('頓服の前回の記録', () => {
 });
 
 describe('記録の一覧(論理日ごと)', () => {
-  it('新しい日が上。決まった時間は時間帯ごとにまとめ、頓服は1件ずつ。1日の中も新しい順', () => {
+  it('新しい日が上。決まった時間は時間帯ごとにまとめ、頓服は1件ずつ。1日の中は古い順(夜中の記録はいちばん下)', () => {
     const days = groupIntakesByLogicalDay([
       intake('m1', at(9, 27, 8), 'morning'),
       intake('m2', at(9, 27, 8, 1), 'morning', { medicationId: 'med-2' }),
@@ -220,7 +220,7 @@ describe('記録の一覧(論理日ごと)', () => {
     const day27 = days[1].entries.map((e) =>
       e.kind === 'scheduled' ? `${e.timing}:${e.intakes.map((i) => i.id).join(',')}` : `頓服:${e.intake.id}`,
     );
-    expect(day27).toEqual(['bedtime:b1', '頓服:p1', 'morning:m1,m2']);
+    expect(day27).toEqual(['morning:m1,m2', '頓服:p1', 'bedtime:b1']);
   });
 
   it('記録がなければ空', () => {
@@ -262,6 +262,14 @@ describe('記録画面の表示', () => {
     expect(intakeLabelText(intake('i', at(9, 28, 21, 30), 'bedtime', { alterId: null }), alterById)).toBe(
       'わからない・21:30',
     );
+  });
+
+  it('記録の一覧の確認文では、朝5時前の記録に「翌」を付ける(見出しの論理日を渡したとき)', () => {
+    const late = intake('i', at(9, 28, 2), 'bedtime');
+    expect(intakeLabelText(late, alterById, '2026-09-27')).toBe('人格A・翌2:00');
+    expect(intakeLabelText(intake('i', at(9, 27, 21, 30), 'bedtime'), alterById, '2026-09-27')).toBe('人格A・21:30');
+    // 記録画面(見出しの論理日を渡さない)は今までどおり
+    expect(intakeLabelText(late, alterById)).toBe('人格A・2:00');
   });
 
   it('昨日の表示:記録ありは「昨日:人格A・21:40」、なしは「昨日は記録なし」、none は出さない', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatCompletionTime, formatElapsed, formatLogicalDateHeading } from './timeFormat';
+import { formatClockInLogicalDay, formatCompletionTime, formatElapsed, formatLogicalDateHeading } from './timeFormat';
 
 /** 2026年のローカル時刻を ISO 形式で作る(month は 1〜12) */
 function iso(month: number, day: number, hour: number, minute: number): string {
@@ -64,5 +64,24 @@ describe('記録の一覧の日の見出し', () => {
     expect(formatLogicalDateHeading('2026-09-28')).toBe('9/28(月)');
     expect(formatLogicalDateHeading('2026-10-04')).toBe('10/4(日)');
     expect(formatLogicalDateHeading('2027-01-01')).toBe('1/1(金)');
+  });
+});
+
+describe('記録の一覧の時刻', () => {
+  it('見出しの論理日と実際の日付が同じなら、そのままの時刻', () => {
+    expect(formatClockInLogicalDay(iso(9, 27, 8, 0), '2026-09-27')).toBe('8:00');
+    expect(formatClockInLogicalDay(iso(9, 27, 23, 59), '2026-09-27')).toBe('23:59');
+  });
+
+  it('朝5時前の記録(前の日の見出しの下に入る)には「翌」を付ける', () => {
+    expect(formatClockInLogicalDay(iso(9, 28, 0, 0), '2026-09-27')).toBe('翌0:00');
+    expect(formatClockInLogicalDay(iso(9, 28, 2, 0), '2026-09-27')).toBe('翌2:00');
+    expect(formatClockInLogicalDay(iso(9, 28, 4, 59), '2026-09-27')).toBe('翌4:59');
+    // 月をまたいでも同じ
+    expect(formatClockInLogicalDay(iso(10, 1, 2, 30), '2026-09-30')).toBe('翌2:30');
+  });
+
+  it('朝5時からは、その日の見出しの下に入るので「翌」は付かない', () => {
+    expect(formatClockInLogicalDay(iso(9, 28, 5, 0), '2026-09-28')).toBe('5:00');
   });
 });

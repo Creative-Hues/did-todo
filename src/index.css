@@ -661,7 +661,7 @@ body {
 
 /* 記録の一覧の1行(SPEC.md 7.6):左に時刻、右に時間帯・人格・薬・理由 */
 .history-entry__time {
-  flex: 0 0 3.5em;
+  flex: 0 0 4em; /* 「翌4:59」も1行に収まる幅 */
   font-weight: bold;
   line-height: 1.4;
 }

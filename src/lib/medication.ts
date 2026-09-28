@@ -3,7 +3,7 @@
 import { resolveRecordAlter } from './completionLabel';
 import { addLogicalDays, startOfLogicalDate, toLogicalDate, type LogicalDate } from './period';
 import type { PreviousPeriodLabel } from './previousPeriod';
-import { formatClockOf, formatElapsed } from './timeFormat';
+import { formatClockInLogicalDay, formatClockOf, formatElapsed } from './timeFormat';
 import type { Alter, Medication, MedicationIntake, MedicationTiming, StockLog } from './types';
 
 /** 時間帯の並び順(画面の上から) */
@@ -181,7 +181,7 @@ export interface HistoryDay {
 }
 
 /**
- * 記録を論理日ごとに分ける。新しい日を上に、1日の中も新しい順に並べる。
+ * 記録を論理日ごとに分ける。新しい日を上に、1日の中は古い順(朝食後が上、夜中の「寝る前」がいちばん下)に並べる。
  * 決まった時間の記録は、時間帯ごとに1行にまとめる(中の記録は時刻の古い順)。
  */
 export function groupIntakesByLogicalDay(intakes: readonly MedicationIntake[]): HistoryDay[] {
@@ -203,7 +203,7 @@ export function groupIntakesByLogicalDay(intakes: readonly MedicationIntake[]): 
     for (const intake of dayIntakes.filter((i) => i.timing === null)) {
       entries.push({ kind: 'asNeeded', intake, takenAt: intake.takenAt });
     }
-    entries.sort((a, b) => b.takenAt.localeCompare(a.takenAt));
+    entries.sort((a, b) => a.takenAt.localeCompare(b.takenAt));
     return { logicalDate, entries };
   });
   return days.sort((a, b) => b.logicalDate.localeCompare(a.logicalDate));
@@ -248,9 +248,19 @@ export function sortStockLogs(logs: readonly StockLog[]): StockLog[] {
   return [...logs].sort((a, b) => b.at.localeCompare(a.at));
 }
 
-/** 服薬記録の完了表示「人格A・21:30」(時刻は実際の時刻。SPEC.md 7.4) */
-export function intakeLabelText(intake: MedicationIntake, alterById: ReadonlyMap<string, Alter>): string {
-  return `${resolveRecordAlter(intake, alterById).name}・${formatClockOf(intake.takenAt)}`;
+/**
+ * 服薬記録の完了表示「人格A・21:30」(時刻は実際の時刻。SPEC.md 7.4)
+ * @param logicalDate 記録の一覧で、その記録を並べている見出しの論理日。
+ *   渡すと、朝5時前の記録に「翌」を付ける(例:「人格A・翌2:00」。SPEC.md 7.6)
+ */
+export function intakeLabelText(
+  intake: MedicationIntake,
+  alterById: ReadonlyMap<string, Alter>,
+  logicalDate?: LogicalDate,
+): string {
+  const time =
+    logicalDate === undefined ? formatClockOf(intake.takenAt) : formatClockInLogicalDay(intake.takenAt, logicalDate);
+  return `${resolveRecordAlter(intake, alterById).name}・${time}`;
 }
 
 /** 時間帯の「昨日」の表示(「昨日:人格B・21:40」「昨日は記録なし」)。何も出さないときは null */
