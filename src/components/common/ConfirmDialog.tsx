@@ -1,4 +1,4 @@
-// 確認ダイアログ(記録の取り消し・人格やタスクの削除で共通)
+// 確認ダイアログ(記録の取り消し・人格やタスクの削除・バケットの本人確認で共通)
 // window.confirm はボタンの文言を変えられないため、自前で作る
 interface Props {
   message: string;
@@ -6,9 +6,11 @@ interface Props {
   confirmLabel: string;
   onConfirm: () => void;
   onCancel: () => void;
+  /** 実行するボタンを赤くするか(消す操作のとき。追加・変更などでは false) */
+  danger?: boolean;
 }
 
-export function ConfirmDialog({ message, confirmLabel, onConfirm, onCancel }: Props) {
+export function ConfirmDialog({ message, confirmLabel, onConfirm, onCancel, danger = true }: Props) {
   return (
     <div className="overlay overlay--center">
       <div className="dialog" role="alertdialog" aria-modal="true" aria-labelledby="confirm-message">
@@ -19,7 +21,7 @@ export function ConfirmDialog({ message, confirmLabel, onConfirm, onCancel }: Pr
           <button type="button" onClick={onCancel}>
             キャンセル
           </button>
-          <button type="button" className="dialog__danger" onClick={onConfirm}>
+          <button type="button" className={danger ? 'dialog__danger' : 'dialog__confirm'} onClick={onConfirm}>
             {confirmLabel}
           </button>
         </div>

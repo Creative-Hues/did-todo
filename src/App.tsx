@@ -4,12 +4,12 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { TabBar, type TabKey } from './components/common/TabBar';
 import { AlterInfoScreen } from './screens/AlterInfoScreen';
+import { BucketScreen } from './screens/BucketScreen';
 import { ClinicNoteScreen } from './screens/ClinicNoteScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { MedicationHistoryScreen } from './screens/MedicationHistoryScreen';
 import { MedicationScreen } from './screens/MedicationScreen';
 import { MedicationSettingsScreen } from './screens/MedicationSettingsScreen';
-import { PlaceholderScreen } from './screens/PlaceholderScreen';
 import { TaskSettingsScreen } from './screens/TaskSettingsScreen';
 
 /** ToDo タブの中の画面:ToDo 画面 / タスク設定 */
@@ -57,7 +57,7 @@ function App() {
       settings: <MedicationSettingsScreen onBack={() => setMedicationView('record')} />,
     }[medicationView],
     clinic: <ClinicNoteScreen />,
-    bucket: <PlaceholderScreen title="バケット" />,
+    bucket: <BucketScreen />,
     alters: <AlterInfoScreen />,
   };
 
