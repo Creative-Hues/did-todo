@@ -1,5 +1,7 @@
 // 画面の切り替え(SPEC.md 5章):画面下のタブバーで5つのタブを切り替える
-import { useLayoutEffect, useState } from 'react';
+// タブを切り替えて戻ったとき、前に開いていた画面・スクロール位置・入力中の内容がそのまま残るよう、
+// 5つのタブの画面は作ったままにして、今のタブ以外は隠しておく
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { TabBar, type TabKey } from './components/common/TabBar';
 import { AlterInfoScreen } from './screens/AlterInfoScreen';
 import { HomeScreen } from './screens/HomeScreen';
@@ -12,45 +14,43 @@ type TodoView = 'home' | 'taskSettings';
 function App() {
   const [tab, setTab] = useState<TabKey>('todo');
   const [todoView, setTodoView] = useState<TodoView>('home');
+  // タブごとのスクロール位置(ページのスクロールは全タブで共通なので、切り替えのたびに覚えて戻す)
+  const scrollByTab = useRef<Partial<Record<TabKey, number>>>({});
 
-  // タブを切り替えたら、画面の一番上から表示する
+  // タブを切り替えたら、そのタブで前に見ていた位置に戻す(初めてなら一番上)
   useLayoutEffect(() => {
-    window.scrollTo(0, 0);
+    window.scrollTo(0, scrollByTab.current[tab] ?? 0);
   }, [tab]);
 
-  // ほかのタブを押したら、そのタブの最初の画面を出す。
   // 今のタブを押したときは何もしない(入力の途中の内容を誤って消さないため)
   const handleSelectTab = (next: TabKey) => {
     if (next === tab) {
       return;
     }
-    setTodoView('home');
+    scrollByTab.current[tab] = window.scrollY;
     setTab(next);
   };
 
-  const renderTab = () => {
-    switch (tab) {
-      case 'todo':
-        return todoView === 'taskSettings' ? (
-          <TaskSettingsScreen onBack={() => setTodoView('home')} />
-        ) : (
-          <HomeScreen onOpenTaskSettings={() => setTodoView('taskSettings')} />
-        );
-      case 'medication':
-        return <PlaceholderScreen title="服薬" />;
-      case 'clinic':
-        return <PlaceholderScreen title="受診メモ" />;
-      case 'bucket':
-        return <PlaceholderScreen title="バケット" />;
-      case 'alters':
-        return <AlterInfoScreen />;
-    }
+  const panels: Record<TabKey, ReactNode> = {
+    todo:
+      todoView === 'taskSettings' ? (
+        <TaskSettingsScreen onBack={() => setTodoView('home')} />
+      ) : (
+        <HomeScreen onOpenTaskSettings={() => setTodoView('taskSettings')} />
+      ),
+    medication: <PlaceholderScreen title="服薬" />,
+    clinic: <PlaceholderScreen title="受診メモ" />,
+    bucket: <PlaceholderScreen title="バケット" />,
+    alters: <AlterInfoScreen />,
   };
 
   return (
     <>
-      {/* key でタブごとに画面を作り直し、タブの中の画面の状態を持ち越さない */}
-      <div key={tab}>{renderTab()}</div>
+      {(Object.keys(panels) as TabKey[]).map((key) => (
+        <div key={key} hidden={key !== tab}>
+          {panels[key]}
+        </div>
+      ))}
       <TabBar current={tab} onSelect={handleSelectTab} />
     </>
   );
