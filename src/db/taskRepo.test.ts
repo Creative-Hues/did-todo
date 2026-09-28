@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from './db';
 import { addAlter, setAlterHidden } from './alterRepo';
 import { addRecord } from './recordRepo';
-import { addTask, deleteTask, reorderTasks, setTaskHidden, updateTask } from './taskRepo';
+import { addTask, deleteTask, deleteTasks, reorderTasks, setTaskHidden, updateTask } from './taskRepo';
 import { mergeCareAlterIds } from '../lib/careAlters';
 
 describe('タスクの保存', () => {
@@ -80,6 +80,21 @@ describe('タスクの保存', () => {
     expect(await database.tasks.get(task.id)).toBeUndefined();
     expect(await database.tasks.get(other.id)).toBeDefined();
     expect(await database.records.where('taskId').equals(task.id).count()).toBe(1);
+  });
+
+  it('まとめて削除すると、選んだタスクだけが消え、完了記録は残る', async () => {
+    const a = await addTask(database, { name: '掃除', cycle: { type: 'daily' }, careAlterIds: [] }, now);
+    const hidden = await addTask(database, { name: '洗濯', cycle: { type: 'weekly' }, careAlterIds: [] }, now);
+    const kept = await addTask(database, { name: '水やり', cycle: { type: 'daily' }, careAlterIds: [] }, now);
+    await setTaskHidden(database, hidden.id, true);
+    await addRecord(database, a, 'x', now);
+    await addRecord(database, hidden, 'x', now);
+    await addRecord(database, kept, 'x', now);
+
+    // 非表示のタスクも選んで消せる
+    await deleteTasks(database, [a.id, hidden.id]);
+    expect((await database.tasks.toArray()).map((t) => t.id)).toEqual([kept.id]);
+    expect(await database.records.count()).toBe(3);
   });
 
   it('編集して保存しても、非表示の人格は気にしている人格に残る', async () => {

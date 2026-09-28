@@ -59,3 +59,11 @@ export async function reorderTasks(database: AppDatabase, orderedIds: readonly s
 export async function deleteTask(database: AppDatabase, id: string): Promise<void> {
   await database.tasks.delete(id);
 }
+
+/**
+ * 選んだタスクをまとめて削除する(SPEC.md 6.4 複数選択+削除)。
+ * 1件ずつの削除と同じく、完了記録は消さずに残す
+ */
+export async function deleteTasks(database: AppDatabase, ids: readonly string[]): Promise<void> {
+  await database.tasks.bulkDelete([...ids]);
+}
