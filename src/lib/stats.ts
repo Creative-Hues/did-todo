@@ -155,6 +155,13 @@ export function buildAlterStats(input: AlterStatsInput): AlterStats {
   };
 }
 
+/** その月に数えるものが1つもないか(全部の項目が0回。画面では「この月の記録はありません」だけを出す) */
+export function isStatsEmpty(stats: AlterStats): boolean {
+  return (
+    didLines(stats.did).length === 0 && stats.receivedTodoProxy.length === 0 && stats.receivedBucketHelp.length === 0
+  );
+}
+
 /** 回数の表示(「3回」) */
 export function countText(count: number): string {
   return `${count}回`;

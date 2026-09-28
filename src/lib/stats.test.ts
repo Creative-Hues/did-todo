@@ -5,6 +5,7 @@ import {
   didLines,
   effectiveCareAlterIds,
   isProxyRecord,
+  isStatsEmpty,
   statsMonthLabel,
   type AlterStatsInput,
 } from './stats';
@@ -307,6 +308,22 @@ describe('表示の文言', () => {
 
   it('全部0なら空', () => {
     expect(didLines({ todo: 0, todoProxy: 0, medication: 0, bucketHelp: 0 })).toEqual([]);
+  });
+
+  it('全部の項目が0回の月だけ「記録なし」になる', () => {
+    expect(isStatsEmpty(stats('a', {}))).toBe(true);
+    // 「わからない」の記録・頓服・ほかの月の記録だけなら、0回のまま
+    expect(
+      isStatsEmpty(
+        stats('a', {
+          records: [rec('t', null, at(9, 1), ['a']), rec('t', 'a', at(8, 1), ['a'])],
+          intakes: [intake('a', at(9, 1, 8), null)],
+        }),
+      ),
+    ).toBe(true);
+    // してくれたことだけがある月は「記録なし」にならない
+    expect(isStatsEmpty(stats('a', { records: [rec('t', 'b', at(9, 1), ['a'])] }))).toBe(false);
+    expect(isStatsEmpty(stats('a', { intakes: [intake('a', at(9, 1, 8), 'morning')] }))).toBe(false);
   });
 
   it('月の見出し', () => {

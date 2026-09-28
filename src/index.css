@@ -1179,6 +1179,88 @@ textarea {
   margin-top: 8px;
 }
 
+/* ---- フェーズ13:集計(SPEC.md 11章) ---- */
+
+/* 「‹ 前の月」・月・「次の月 ›」を横に並べる */
+.stats-month {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.stats-month__label {
+  font-weight: bold;
+  white-space: nowrap;
+}
+
+.stats-card {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+}
+
+.stats-card h3 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
+.stats-card .empty {
+  margin: 0;
+}
+
+.stats-group + .stats-group {
+  margin-top: 12px;
+}
+
+.stats-group h4 {
+  margin: 0 0 4px;
+  font-size: 0.875rem;
+  font-weight: normal;
+  color: #888;
+}
+
+/* 左に項目名(または人格)、右に回数 */
+.stats-list {
+  margin: 0;
+}
+
+.stats-list__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.stats-list__row dt {
+  min-width: 0;
+}
+
+.stats-list__row dd {
+  flex-shrink: 0;
+  margin: 0;
+}
+
+.stats-list__alter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stats-list__alter .color-dot {
+  width: 14px;
+  height: 14px;
+}
+
+.stats-list__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ---- フェーズ12:印刷(PDF。SPEC.md 10.7) ---- */
 
 /* 印刷用の中身は、画面には出さない */

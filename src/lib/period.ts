@@ -104,6 +104,19 @@ export function statsMonthRange(now: Date): { oldest: string; latest: string } {
   return { oldest, latest };
 }
 
+/**
+ * 集計で表示する月を、見られる範囲の中に寄せる(SPEC.md 11章)。
+ * month が null なら今の論理月。月をまたいで範囲の外になった月は、範囲の端の月にする
+ * @param now 現在時刻(テストで任意の時刻を渡せるよう引数にしている)
+ */
+export function clampStatsMonth(month: string | null, now: Date): string {
+  const { oldest, latest } = statsMonthRange(now);
+  if (month === null || month > latest) {
+    return latest;
+  }
+  return month < oldest ? oldest : month;
+}
+
 /** 論理日が始まる日時(その日の朝5時。端末のローカル時刻) */
 export function startOfLogicalDate(logicalDate: LogicalDate): Date {
   const { year, month, day } = parseLogicalDate(logicalDate);

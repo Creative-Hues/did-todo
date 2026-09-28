@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   addLogicalDays,
+  clampStatsMonth,
   diffLogicalDays,
   nextLogicalMonth,
   previousLogicalMonth,
@@ -102,6 +103,16 @@ describe('集計で見られる月の範囲(過去11か月〜今月)', () => {
 
   it('1月は前の年の2月から', () => {
     expect(statsMonthRange(new Date(2027, 0, 15, 12, 0))).toEqual({ oldest: '2026-02', latest: '2027-01' });
+  });
+
+  it('表示する月を範囲の中に寄せる', () => {
+    const now = new Date(2026, 8, 28, 12, 0);
+    expect(clampStatsMonth(null, now)).toBe('2026-09');
+    expect(clampStatsMonth('2026-05', now)).toBe('2026-05');
+    expect(clampStatsMonth('2026-10', now)).toBe('2026-09');
+    expect(clampStatsMonth('2025-10', now)).toBe('2025-10');
+    // 月をまたいで、いちばん古い月が範囲の外になった
+    expect(clampStatsMonth('2025-10', new Date(2026, 9, 1, 5, 0))).toBe('2025-11');
   });
 });
 

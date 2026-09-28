@@ -1,6 +1,6 @@
 // 人格ごとのページ(SPEC.md 10.3)。読むための表示で、直すときはカードをタップして編集画面を開く
-// 上から:名前・色・区分 →「この人のページをPDFに」→ 基本情報 → プロフィール
-// 集計(11章)はフェーズ13で足す
+// 上から:名前・色・区分 →「この人のページをPDFに」→ 基本情報 → プロフィール → 集計(11章。オンのときだけ)
+import { AlterStatsSection } from '../components/profile/AlterStatsSection';
 import { ProfileSectionList } from '../components/profile/ProfileSectionList';
 import { basicInfoItems, categoryLabel } from '../lib/alterInfo';
 import type { Alter, AlterCategory, ProfileSection } from '../lib/types';
@@ -19,6 +19,11 @@ interface Props {
   onEditBasicInfo: () => void;
   onOpenSection: (section: ProfileSection) => void;
   onAddSection: () => void;
+  /** 集計を表示するか(SPEC.md 11章。全員分で1つの設定) */
+  showStats: boolean;
+  /** 集計で選んでいる月('YYYY-MM')。null なら今の論理月 */
+  statsMonth: string | null;
+  onChangeStatsMonth: (month: string) => void;
 }
 
 export function AlterPageScreen({
@@ -31,6 +36,9 @@ export function AlterPageScreen({
   onEditBasicInfo,
   onOpenSection,
   onAddSection,
+  showStats,
+  statsMonth,
+  onChangeStatsMonth,
 }: Props) {
   return (
     <main className="app">
@@ -76,6 +84,8 @@ export function AlterPageScreen({
         <h2>プロフィール</h2>
         <ProfileSectionList sections={sections} onOpen={onOpenSection} onAdd={onAddSection} />
       </section>
+
+      {showStats && <AlterStatsSection alterId={alter.id} month={statsMonth} onChangeMonth={onChangeStatsMonth} />}
     </main>
   );
 }

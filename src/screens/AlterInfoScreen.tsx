@@ -1,10 +1,11 @@
-// 人格情報タブ(SPEC.md 10.1):「全体のこと」の入口、区分ごとの人格の一覧、区分の設定、バックアップの入口
+// 人格情報タブ(SPEC.md 10.1):「全体のこと」の入口、区分ごとの人格の一覧、区分の設定、集計の表示の切り替え、バックアップの入口
 // 一覧の上に「早見表」「全員分をPDFに」(10.6・10.7)
 // 人格の行をタップすると人格ごとのページ(10.3)が開き、そこから各編集画面を開く
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AlterList } from '../components/settings/AlterList';
 import { db } from '../db/db';
 import { getLastExportedAt } from '../db/backupRepo';
+import { getShowStats, setShowStats } from '../db/settingsRepo';
 import { useListScroll } from '../hooks/useListScroll';
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { useNow } from '../hooks/useNow';
@@ -18,6 +19,7 @@ import {
   type PrintContent,
 } from '../lib/alterInfo';
 import { backupReminderText } from '../lib/backup';
+import { showSaveError } from '../lib/showError';
 import { AlterBasicInfoEditScreen } from './AlterBasicInfoEditScreen';
 import { AlterCategorySettingsScreen } from './AlterCategorySettingsScreen';
 import { AlterEditScreen } from './AlterEditScreen';
@@ -70,8 +72,12 @@ function AlterInfoContent({ print, clearPrint }: ContentProps) {
   const categories = useLiveQuery(() => db.categories.toArray());
   const sections = useLiveQuery(() => db.profileSections.toArray());
   const lastExportedAt = useLiveQuery(() => getLastExportedAt(db));
+  const showStats = useLiveQuery(() => getShowStats(db));
   const now = useNow();
   const [view, setView] = useState<View>({ kind: 'list' });
+  // 人格のページの集計で選んでいる月(null なら今の論理月)。
+  // 編集画面へ行って戻っても保ち、一覧から人格のページを開いたときは今月に戻す(SPEC.md 11章)
+  const [statsMonth, setStatsMonth] = useState<string | null>(null);
   const rememberScroll = useListScroll(view.kind === 'list');
   // 人格のページ・全体のことから編集画面を開いたときの、ページのスクロール位置(戻ったら元の位置に戻す)
   const pageScrollY = useRef<number | null>(null);
@@ -100,6 +106,7 @@ function AlterInfoContent({ print, clearPrint }: ContentProps) {
   const open = (next: View) => {
     rememberScroll();
     pageScrollY.current = null;
+    setStatsMonth(null);
     setView(next);
   };
   /** 人格のページ・全体のことから編集画面を開く */
@@ -161,6 +168,9 @@ function AlterInfoContent({ print, clearPrint }: ContentProps) {
           onEditBasicInfo={() => openFromPage({ kind: 'basicInfo', id: alter.id })}
           onOpenSection={(section) => openFromPage({ kind: 'section', ownerId: alter.id, sectionId: section.id })}
           onAddSection={() => openFromPage({ kind: 'section', ownerId: alter.id, sectionId: null })}
+          showStats={showStats === true}
+          statsMonth={statsMonth}
+          onChangeStatsMonth={setStatsMonth}
         />
       );
     }
@@ -177,7 +187,10 @@ function AlterInfoContent({ print, clearPrint }: ContentProps) {
           categories={categories}
           // 編集はその人格のページへ、追加のキャンセルは一覧へ戻る
           onBack={() => (alter ? setView({ kind: 'page', id: alter.id }) : backToList())}
-          onAdded={(added) => setView({ kind: 'page', id: added.id })}
+          onAdded={(added) => {
+            setStatsMonth(null);
+            setView({ kind: 'page', id: added.id });
+          }}
           onDeleted={backToList}
         />
       );
@@ -242,6 +255,20 @@ function AlterInfoContent({ print, clearPrint }: ContentProps) {
           区分の設定
         </button>
       </section>
+      {/* 集計の表示のオン/オフ(SPEC.md 11章・14章②)。全員分で1つの設定。押すとすぐ保存(読み込み中は出さない) */}
+      {showStats !== undefined && (
+        <section className="settings-section">
+          <h2>集計</h2>
+          <label className="choice">
+            <input
+              type="checkbox"
+              checked={showStats}
+              onChange={(event) => setShowStats(db, event.target.checked).catch(showSaveError)}
+            />
+            人格ごとのページに集計を表示する
+          </label>
+        </section>
+      )}
       <section className="settings-section">
         <h2>バックアップ</h2>
         {reminder && <p className="backup-reminder">{reminder}</p>}
