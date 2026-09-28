@@ -719,6 +719,10 @@ textarea {
   display: flex;
   align-items: flex-start;
   gap: 8px;
+}
+
+/* メモ1件分(メモと、その下のコメント)の区切り線 */
+.note-entry {
   border-bottom: 1px solid #ccc;
 }
 
@@ -773,4 +777,39 @@ textarea {
 .note-item__discussed {
   font-size: 0.875rem;
   color: #888;
+}
+
+/* メモの下のコメント(SPEC.md 8.4)。「話した」のチェックの幅だけ字下げし、左に線を引く */
+.comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 10px 60px;
+  padding-left: 8px;
+  border-left: 2px solid #ccc;
+}
+
+.comment-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  padding: 6px 4px;
+  border: none;
+  background: none;
+  color: inherit;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.comment-item__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  font-size: 0.8125rem;
+}
+
+.comment-add {
+  align-self: flex-start;
+  font-size: 0.875rem;
 }
