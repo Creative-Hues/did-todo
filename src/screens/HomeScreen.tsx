@@ -17,10 +17,10 @@ import type { Task } from '../lib/types';
 type Modal = null | { kind: 'pick'; task: Task } | { kind: 'undo'; task: Task; labelText: string };
 
 interface Props {
-  onOpenSettings: () => void;
+  onOpenTaskSettings: () => void;
 }
 
-export function HomeScreen({ onOpenSettings }: Props) {
+export function HomeScreen({ onOpenTaskSettings }: Props) {
   const alters = useLiveQuery(() => db.alters.toArray());
   const tasks = useLiveQuery(() => db.tasks.toArray());
   const records = useLiveQuery(() => db.records.toArray());
@@ -91,8 +91,8 @@ export function HomeScreen({ onOpenSettings }: Props) {
           <button type="button" onClick={() => setReordering((current) => !current)}>
             {reordering ? '完了' : '並び替え'}
           </button>
-          <button type="button" onClick={onOpenSettings}>
-            設定
+          <button type="button" onClick={onOpenTaskSettings}>
+            タスク設定
           </button>
         </div>
       </header>
