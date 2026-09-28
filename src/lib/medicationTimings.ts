@@ -43,3 +43,16 @@ export function isDuplicateTimingName(
 ): boolean {
   return timings.some((timing) => timing.id !== exceptId && timing.name.trim() === name);
 }
+
+/**
+ * 薬の登録・編集で選択肢に出す時間帯を、一覧の並び順で返す(SPEC.md 7.8)。
+ * 非表示でない時間帯に加えて、その薬がすでに使っている非表示の時間帯も出す(チェックを外して欄をなくせるように)
+ * @param savedIds 編集する薬に保存されている時間帯のID(登録のときは空)。
+ *   チェックを外しても選択肢から消えないよう、入力中の値ではなく保存されている値を渡す
+ */
+export function selectableTimingsFor(
+  timingList: readonly MedicationTiming[],
+  savedIds: readonly MedicationTimingId[],
+): MedicationTiming[] {
+  return sortTimingsByOrder(timingList).filter((timing) => !timing.hidden || savedIds.includes(timing.id));
+}

@@ -3,6 +3,7 @@ import {
   UNKNOWN_TIMING_NAME,
   buildInitialMedicationTimings,
   isDuplicateTimingName,
+  selectableTimingsFor,
   sortTimingsByOrder,
   timingNameOf,
 } from './medicationTimings';
@@ -37,5 +38,19 @@ describe('服薬の時間帯の一覧(SPEC.md 7.8)', () => {
     expect(isDuplicateTimingName('昼食後', list)).toBe(true);
     expect(isDuplicateTimingName('朝食前', list)).toBe(false);
     expect(isDuplicateTimingName('昼食後', list, 'noon')).toBe(false);
+  });
+});
+
+describe('薬の登録・編集で選べる時間帯', () => {
+  const list = buildInitialMedicationTimings(createdAt).map((t) =>
+    t.id === 'noon' || t.id === 'evening' ? { ...t, hidden: true } : t,
+  );
+
+  it('登録のときは、非表示でない時間帯だけを並び順で出す', () => {
+    expect(selectableTimingsFor(list, []).map((t) => t.id)).toEqual(['morning', 'bedtime']);
+  });
+
+  it('編集のときは、その薬がすでに使っている非表示の時間帯も出す(外せるように)', () => {
+    expect(selectableTimingsFor(list, ['noon', 'bedtime']).map((t) => t.id)).toEqual(['morning', 'noon', 'bedtime']);
   });
 });

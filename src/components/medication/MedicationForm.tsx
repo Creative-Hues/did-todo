@@ -5,7 +5,7 @@ import { useState, type FormEvent } from 'react';
 import type { MedicationInput } from '../../db/medicationRepo';
 import { formatTablets } from '../../lib/medication';
 import { validateMedicationForm } from '../../lib/medicationForm';
-import { sortForSettings } from '../../lib/ordering';
+import { selectableTimingsFor } from '../../lib/medicationTimings';
 import type { Medication, MedicationTiming, MedicationTimingId } from '../../lib/types';
 
 interface Props {
@@ -29,8 +29,9 @@ export function MedicationForm({ initial, timingList, onSubmit, onCancel }: Prop
   const [remainingText, setRemainingText] = useState('');
   const [error, setError] = useState<string | null>(null);
 
-  // 選択肢は非表示でない時間帯を、一覧の並び順で出す(SPEC.md 7.1・7.8)
-  const selectableTimings = sortForSettings(timingList).visible;
+  // 選択肢は非表示でない時間帯を、一覧の並び順で出す。その薬がすでに使っている非表示の時間帯も
+  // 「(非表示)」を付けて出し、チェックを外せるようにする(SPEC.md 7.1・7.8)
+  const selectableTimings = selectableTimingsFor(timingList, initial?.timings ?? []);
 
   const toggleTiming = (timing: MedicationTimingId) => {
     setTimings((current) => (current.includes(timing) ? current.filter((t) => t !== timing) : [...current, timing]));
@@ -93,6 +94,7 @@ export function MedicationForm({ initial, timingList, onSubmit, onCancel }: Prop
                 onChange={() => toggleTiming(timing.id)}
               />
               {timing.name}
+              {timing.hidden && '(非表示)'}
             </label>
           ))}
         </fieldset>
