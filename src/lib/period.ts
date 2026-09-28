@@ -81,6 +81,29 @@ export function previousLogicalMonth(logicalMonth: string): string {
   return month === 1 ? `${year - 1}-12` : `${year}-${pad2(month - 1)}`;
 }
 
+/** 'YYYY-MM' の次の月 */
+export function nextLogicalMonth(logicalMonth: string): string {
+  const [year, month] = logicalMonth.split('-').map(Number);
+  return month === 12 ? `${year + 1}-01` : `${year}-${pad2(month + 1)}`;
+}
+
+/** 集計で見られる月の数(過去11か月〜今月。SPEC.md 11章) */
+export const STATS_MONTH_COUNT = 12;
+
+/**
+ * 集計で見られる月の範囲(SPEC.md 11章)。
+ * latest は今の論理月、oldest はその11か月前。
+ * @param now 現在時刻(テストで任意の時刻を渡せるよう引数にしている)
+ */
+export function statsMonthRange(now: Date): { oldest: string; latest: string } {
+  const latest = toLogicalMonth(now);
+  let oldest = latest;
+  for (let i = 1; i < STATS_MONTH_COUNT; i += 1) {
+    oldest = previousLogicalMonth(oldest);
+  }
+  return { oldest, latest };
+}
+
 /** 論理日が始まる日時(その日の朝5時。端末のローカル時刻) */
 export function startOfLogicalDate(logicalDate: LogicalDate): Date {
   const { year, month, day } = parseLogicalDate(logicalDate);

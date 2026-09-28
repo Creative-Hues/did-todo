@@ -200,7 +200,10 @@ export interface BucketItem {
 
 /** 端末の設定(キーと値)。バックアップには含めない */
 export interface AppMeta {
-  /** lastBackupExportedAt:バックアップを最後に書き出した日時(ISO形式) */
-  key: 'lastBackupExportedAt';
+  /**
+   * - lastBackupExportedAt:バックアップを最後に書き出した日時(ISO形式)
+   * - showStats:人格ごとのページに集計を表示するか('on' / 'off'。ないときはオフ。SPEC.md 11章)
+   */
+  key: 'lastBackupExportedAt' | 'showStats';
   value: string;
 }

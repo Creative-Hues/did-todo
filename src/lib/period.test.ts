@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   addLogicalDays,
   diffLogicalDays,
+  nextLogicalMonth,
   previousLogicalMonth,
+  statsMonthRange,
   startOfLogicalDate,
   startOfLogicalMonth,
   toCalendarDate,
@@ -21,6 +23,11 @@ describe('前の期間の計算に使う関数', () => {
   it('前の月(年をまたぐ)', () => {
     expect(previousLogicalMonth('2026-09')).toBe('2026-08');
     expect(previousLogicalMonth('2026-01')).toBe('2025-12');
+  });
+
+  it('次の月(年をまたぐ)', () => {
+    expect(nextLogicalMonth('2026-09')).toBe('2026-10');
+    expect(nextLogicalMonth('2026-12')).toBe('2027-01');
   });
 
   it('論理日・論理月が始まる日時は朝5時', () => {
@@ -77,6 +84,24 @@ describe('月(論理日の年月)', () => {
 
   it('1日 5:00 は新しい月になる', () => {
     expect(toLogicalMonth(new Date(2026, 9, 1, 5, 0))).toBe('2026-10');
+  });
+});
+
+describe('集計で見られる月の範囲(過去11か月〜今月)', () => {
+  it('今月から11か月前まで(年をまたぐ)', () => {
+    expect(statsMonthRange(new Date(2026, 8, 28, 12, 0))).toEqual({ oldest: '2025-10', latest: '2026-09' });
+  });
+
+  it('1日 4:59 はまだ前の月が「今月」', () => {
+    expect(statsMonthRange(new Date(2026, 9, 1, 4, 59))).toEqual({ oldest: '2025-10', latest: '2026-09' });
+  });
+
+  it('1日 5:00 で範囲が1か月進む', () => {
+    expect(statsMonthRange(new Date(2026, 9, 1, 5, 0))).toEqual({ oldest: '2025-11', latest: '2026-10' });
+  });
+
+  it('1月は前の年の2月から', () => {
+    expect(statsMonthRange(new Date(2027, 0, 15, 12, 0))).toEqual({ oldest: '2026-02', latest: '2027-01' });
   });
 });
 
