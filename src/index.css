@@ -826,3 +826,60 @@ textarea {
   background: rgba(128, 128, 128, 0.12); /* 明るい画面でも暗い画面でも薄く見える色 */
   font-size: 0.875rem;
 }
+
+/* 受診メモの見出しの下の「診察用の表示」。診察室ですぐ押せるよう、横いっぱいの大きなボタンにする */
+.clinic-view-button {
+  width: 100%;
+  min-height: 56px;
+  margin-bottom: 12px;
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+/* 診察用の表示(SPEC.md 8.3)。医師に画面を見せても読みやすいよう、文字を大きめにする */
+.clinic-view {
+  font-size: 1.25rem;
+  line-height: 1.6;
+}
+
+.clinic-view__title {
+  font-size: 1.375rem;
+  margin: 8px 0 16px;
+}
+
+.clinic-view__group {
+  margin-bottom: 24px;
+}
+
+.clinic-view h3 {
+  font-size: 1.3rem;
+  margin: 0 0 8px;
+}
+
+.clinic-view h4 {
+  font-size: 1.25rem;
+  margin: 8px 0 4px;
+}
+
+.clinic-view__notes {
+  margin: 0;
+  padding-left: 1.5em;
+}
+
+.clinic-view__notes > li {
+  margin-bottom: 6px;
+}
+
+/* コメントはメモの下に字下げして出す */
+.clinic-view__comments {
+  list-style: none;
+  margin: 2px 0 0;
+  padding-left: 1em;
+  font-size: 1.125rem;
+}
+
+/* 改行もそのまま出し、長い語でもはみ出さない */
+.clinic-view__text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
