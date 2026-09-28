@@ -956,3 +956,28 @@ textarea {
   gap: 12px;
   cursor: pointer;
 }
+
+/* ---- フェーズ12:人格情報 ---- */
+
+/* 「全体のこと」への入口。名前を左、› を右に置く */
+.common-entry {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  font-weight: bold;
+}
+
+/* 区分ごとのまとまり(SPEC.md 10.1) */
+.alter-group {
+  margin-bottom: 16px;
+}
+
+/* 区分の名前の見出し */
+.alter-group__heading {
+  font-size: 0.9375rem;
+  margin: 0;
+  padding: 4px 0;
+  border-bottom: 2px solid #ccc;
+  color: #888; /* ダークモードでも読める灰色 */
+}

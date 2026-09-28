@@ -15,15 +15,16 @@ import {
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { deleteAlterConfirmMessage } from '../lib/alterInfo';
 import { showSaveError } from '../lib/showError';
-import type { Alter } from '../lib/types';
+import type { Alter, AlterCategory } from '../lib/types';
 
 interface Props {
   /** 編集する人格(追加のときは undefined) */
   alter?: Alter;
+  categories: AlterCategory[];
   onBack: () => void;
 }
 
-export function AlterEditScreen({ alter, onBack }: Props) {
+export function AlterEditScreen({ alter, categories, onBack }: Props) {
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // 完了記録・服薬記録・受診メモ・コメントの件数(1件以上あると削除できない。SPEC.md 3.1)
   const recordCount = useLiveQuery(
@@ -79,7 +80,7 @@ export function AlterEditScreen({ alter, onBack }: Props) {
         </button>
         <h1>{alter ? '人格を編集' : '人格を追加'}</h1>
       </header>
-      <AlterForm initial={alter} onSubmit={handleSubmit} onCancel={onBack} />
+      <AlterForm initial={alter} categories={categories} onSubmit={handleSubmit} onCancel={onBack} />
       {alter && (
         <section className="edit-actions">
           <button type="button" onClick={() => handleToggleHidden(alter)}>
