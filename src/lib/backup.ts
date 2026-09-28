@@ -4,7 +4,10 @@ import { diffLogicalDays, toCalendarDate, toLogicalDate } from './period';
 
 export type { BackupData } from './backupSchema';
 
-/** このアプリのバックアップであることを示す印 */
+/**
+ * このアプリのバックアップであることを示す印(ファイル名にも使う)。
+ * アプリの名前は「ひとつやね」に変わったが、今までのバックアップを読み込めるよう、以前の名前のまま変えない(SPEC.md 12章)
+ */
 const APP_ID = 'minna-todo';
 
 /**

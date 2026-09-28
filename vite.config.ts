@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
-        name: 'みんなのToDo',
-        short_name: 'みんなのToDo',
+        name: 'ひとつやね',
+        short_name: 'ひとつやね',
         description: '人格交代があっても日々のToDoを共有管理するアプリ',
         lang: 'ja',
         display: 'standalone',

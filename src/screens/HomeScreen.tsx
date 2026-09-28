@@ -86,7 +86,7 @@ export function HomeScreen({ onOpenTaskSettings }: Props) {
   return (
     <main className="app">
       <header className="screen-header">
-        <h1>みんなのToDo</h1>
+        <h1>ひとつやね</h1>
         <div className="header-buttons">
           <button type="button" onClick={() => setReordering((current) => !current)}>
             {reordering ? '完了' : '並び替え'}
