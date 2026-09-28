@@ -813,3 +813,16 @@ textarea {
   align-self: flex-start;
   font-size: 0.875rem;
 }
+
+/* コメントの入力・編集画面の上の元のメモ(SPEC.md 8.4)。入力欄と区別できるよう、薄い背景の枠に入れる */
+.note-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 16px;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  background: rgba(128, 128, 128, 0.12); /* 明るい画面でも暗い画面でも薄く見える色 */
+  font-size: 0.875rem;
+}

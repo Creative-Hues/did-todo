@@ -1,9 +1,10 @@
 // 受診メモのコメントの入力・編集画面(SPEC.md 8.4)
 // ほかの人格が書いたメモを直す代わりに、コメントで書き足す
-// 編集のときは、上に「人格Bが書いたコメント」を出し、削除もここから行う
+// 上に元のメモを小さく出す。編集のときは「人格Bが書いたコメント」も出し、削除もここから行う
 import { useState, type FormEvent } from 'react';
 import { AuthorChoices } from '../components/clinic/AuthorChoices';
 import { AuthorHeading } from '../components/clinic/AuthorHeading';
+import { NotePreview } from '../components/clinic/NotePreview';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { db } from '../db/db';
 import { addClinicNoteComment, deleteClinicNoteComment, updateClinicNoteComment } from '../db/clinicNoteRepo';
@@ -14,23 +15,25 @@ import {
   type AuthorSelection,
 } from '../lib/clinicNotes';
 import { showSaveError } from '../lib/showError';
-import type { Alter, ClinicNoteComment } from '../lib/types';
+import type { Alter, ClinicNote, ClinicNoteCategory, ClinicNoteComment } from '../lib/types';
 
 interface Props {
-  /** どのメモへのコメントか */
-  noteId: string;
+  /** どのメモへのコメントか(画面の上に小さく出す) */
+  note: ClinicNote;
   /** 編集するコメント(新しく書くときは undefined) */
   comment?: ClinicNoteComment;
   alters: Alter[];
+  categories: ClinicNoteCategory[];
   onBack: () => void;
 }
 
-export function ClinicNoteCommentEditScreen({ noteId, comment, alters, onBack }: Props) {
+export function ClinicNoteCommentEditScreen({ note, comment, alters, categories, onBack }: Props) {
   const [author, setAuthor] = useState<AuthorSelection>(comment ? { alterId: comment.alterId } : null);
   const [body, setBody] = useState(comment?.body ?? '');
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const alterById = new Map(alters.map((alter) => [alter.id, alter]));
+  const categoryById = new Map(categories.map((category) => [category.id, category]));
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -44,7 +47,7 @@ export function ClinicNoteCommentEditScreen({ noteId, comment, alters, onBack }:
         await updateClinicNoteComment(db, comment.id, result.input);
       } else {
         // メモがほかの画面で削除されていたら追加されない(一覧に戻るだけ)
-        await addClinicNoteComment(db, noteId, result.input, new Date());
+        await addClinicNoteComment(db, note.id, result.input, new Date());
       }
       onBack();
     } catch (saveError) {
@@ -69,6 +72,7 @@ export function ClinicNoteCommentEditScreen({ noteId, comment, alters, onBack }:
         </button>
         <h1>{comment ? 'コメントを編集' : 'コメントを書く'}</h1>
       </header>
+      <NotePreview note={note} alterById={alterById} categoryById={categoryById} />
       {comment && <AuthorHeading alterId={comment.alterId} kind="コメント" alterById={alterById} />}
       <form className="edit-form" onSubmit={(event) => void handleSubmit(event)}>
         <AuthorChoices alters={selectableAuthors(alters, comment?.alterId)} selection={author} onChange={setAuthor} />

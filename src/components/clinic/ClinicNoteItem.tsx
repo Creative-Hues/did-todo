@@ -1,5 +1,5 @@
 // 受診メモの一覧の1件(SPEC.md 8.2)
-// 左に「話した」のチェックボックス。それ以外の部分をタップすると編集画面を開く
+// 左に「話した?」のチェックボックス。それ以外の部分をタップすると編集画面を開く
 import { resolveRecordAlter } from '../../lib/completionLabel';
 import { UNKNOWN_CATEGORY_NAME } from '../../lib/clinicNotes';
 import { formatClockOf, formatMonthDay } from '../../lib/timeFormat';
@@ -20,14 +20,15 @@ export function ClinicNoteItem({ note, alterById, categoryById, onToggleDiscusse
 
   return (
     <div className="note-item">
-      {/* 何のチェックかわかるよう、下に「話した」と出す。文字を押しても切り替わる(SPEC.md 8.2) */}
+      {/* 何のチェックかわかるよう、下に「話した?」と出す(読み上げの名前にもなる)。
+          文字を押しても切り替わる(SPEC.md 8.2) */}
       <label className="note-item__check">
         <input
           type="checkbox"
           checked={note.discussedAt !== null}
           onChange={(event) => onToggleDiscussed(note, event.target.checked)}
         />
-        <span>話した</span>
+        <span>話した?</span>
       </label>
       <button type="button" className="note-item__body" onClick={() => onOpen(note)}>
         <span className="note-item__meta">

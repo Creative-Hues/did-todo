@@ -60,15 +60,17 @@ export function ClinicNoteScreen() {
   }
 
   if (view.kind === 'comment') {
+    const note = notes.find((n) => n.id === view.noteId);
     const comment = comments.find((c) => c.id === view.id);
-    // 新しく書くか、編集するコメントが見つかるときだけ編集画面を出す(削除済みなら一覧を出す)
-    if (view.id === null || comment) {
+    // メモがあり、新しく書くか編集するコメントが見つかるときだけ編集画面を出す(削除済みなら一覧を出す)
+    if (note && (view.id === null || comment)) {
       return (
         <ClinicNoteCommentEditScreen
           key={view.id ?? `new-${view.noteId}`}
-          noteId={view.noteId}
+          note={note}
           comment={comment}
           alters={alters}
+          categories={categories}
           onBack={backToList}
         />
       );
