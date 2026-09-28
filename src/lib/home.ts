@@ -1,4 +1,5 @@
 // ホーム画面の欄の組み立て(SPEC.md 6.1)。純粋関数。
+import { getPreviousPeriodResult, type PreviousPeriodResult } from './previousPeriod';
 import { getTaskStatus, type TaskStatus } from './status';
 import type { CompletionRecord, Cycle, Task } from './types';
 
@@ -12,6 +13,8 @@ export interface HomeItem {
   status: Exclude<TaskStatus, 'rest'>;
   /** 今の期間の完了記録(完了のときだけ入る) */
   currentRecord: CompletionRecord | null;
+  /** 前の期間の結果(SPEC.md 6.5) */
+  previous: PreviousPeriodResult;
 }
 
 export interface HomeSection {
@@ -81,11 +84,13 @@ export function buildHomeSections(
     if (task.hidden) {
       continue;
     }
-    const { status, currentRecord } = getTaskStatus(task.cycle, recordsByTask.get(task.id) ?? [], now);
+    const taskRecords = recordsByTask.get(task.id) ?? [];
+    const { status, currentRecord } = getTaskStatus(task.cycle, taskRecords, now);
     if (status === 'rest') {
       continue;
     }
-    itemsBySection.get(sectionOf(task.cycle))?.push({ task, status, currentRecord });
+    const previous = getPreviousPeriodResult(task, taskRecords, now);
+    itemsBySection.get(sectionOf(task.cycle))?.push({ task, status, currentRecord, previous });
   }
 
   return SECTION_ORDER.map((key) => ({

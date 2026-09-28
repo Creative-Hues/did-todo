@@ -320,6 +320,17 @@ input[type='color'] {
   font-weight: bold;
 }
 
+/* 前の期間の結果(SPEC.md 6.5):記録ありは小さく薄い文字 */
+.task-item__previous {
+  font-size: 0.8125rem;
+  color: #888;
+}
+
+/* 記録なし・予定日から○日:薄くせず、ふつうの文字色(警告の色は使わない) */
+.task-item__previous--missing {
+  color: inherit;
+}
+
 /* シート・確認ダイアログの背景 */
 .overlay {
   position: fixed;

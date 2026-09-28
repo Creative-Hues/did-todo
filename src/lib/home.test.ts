@@ -64,6 +64,16 @@ describe('ホーム画面の欄', () => {
     expect(today.items[0].currentRecord).toEqual(r);
   });
 
+  it('前の期間の結果が入る(ほかのタスクの記録は混ざらない)', () => {
+    const tasks = [task('daily', { type: 'daily' }, 0), task('other', { type: 'daily' }, 1)];
+    const yesterday = record('daily', at(9, 24, 21));
+    const [today] = buildHomeSections(tasks, [yesterday], now);
+    expect(today.items.map((i) => [i.task.id, i.previous])).toEqual([
+      ['daily', { kind: 'record', record: yesterday }],
+      ['other', { kind: 'noRecord' }],
+    ]);
+  });
+
   it('タスクが1つもない欄は返さない', () => {
     expect(buildHomeSections([task('weekly', { type: 'weekly' }, 0)], [], now).map((s) => s.key)).toEqual(['week']);
     expect(buildHomeSections([], [], now)).toEqual([]);

@@ -3,7 +3,23 @@
 import { resolveCareAlters } from '../../lib/careAlters';
 import { toCompletionLabel } from '../../lib/completionLabel';
 import type { HomeItem, SectionKey } from '../../lib/home';
+import { toPreviousPeriodLabel, type PreviousPeriodLabel } from '../../lib/previousPeriod';
 import type { Alter } from '../../lib/types';
+
+/**
+ * 前の期間の結果の1行(SPEC.md 6.5)。
+ * 記録ありは小さく薄い文字、記録なし・予定日から○日は小さい文字でふつうの文字色(警告の色は使わない)
+ */
+function PreviousPeriodLine({ label }: { label: PreviousPeriodLabel }) {
+  if (label.kind === 'missing') {
+    return <span className="task-item__previous task-item__previous--missing">{label.text}</span>;
+  }
+  return (
+    <span className="task-item__previous">
+      {label.prefix}:<span style={label.color ? { color: label.color } : undefined}>{label.name}</span>・{label.time}
+    </span>
+  );
+}
 
 interface Props {
   item: HomeItem;
@@ -19,6 +35,7 @@ export function TaskItem({ item, section, alters, alterById, onTap }: Props) {
   const done = item.status === 'done' && item.currentRecord !== null;
   const label = item.currentRecord ? toCompletionLabel(item.currentRecord, section, alterById) : null;
   const className = done ? 'task-item task-item--done' : 'task-item';
+  const previous = toPreviousPeriodLabel(item.previous, item.task.cycle, alterById);
 
   const content = (
     <>
@@ -41,6 +58,7 @@ export function TaskItem({ item, section, alters, alterById, onTap }: Props) {
             <span style={label.color ? { color: label.color } : undefined}>{label.name}</span>・{label.time}
           </span>
         )}
+        {previous && <PreviousPeriodLine label={previous} />}
       </span>
     </>
   );
