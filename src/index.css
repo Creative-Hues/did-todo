@@ -602,3 +602,34 @@ body {
 .stock-log__at {
   color: #888;
 }
+
+/* 記録画面の薬1つ分:名前と、その下に残り */
+.intake-medication {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.intake-stock {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-size: 0.875rem;
+}
+
+.intake-stock .stock-text--low,
+.intake-stock .stock-notice {
+  margin: 0;
+  font-weight: bold;
+}
+
+/* 時間帯の記録シートの、薬のチェック一覧 */
+.intake-checks {
+  margin-bottom: 16px;
+}
+
+/* 押せないときの人格ボタン(記録する薬が0個のとき) */
+.picker-button:disabled {
+  opacity: 0.4;
+}

@@ -14,8 +14,11 @@ import {
   medicationKindLabel,
   stockLogAmountText,
   stockText,
+  intakeLabelText,
+  toLastAsNeededLabel,
+  toYesterdayLabel,
 } from './medication';
-import type { Medication, MedicationIntake, MedicationTiming } from './types';
+import type { Alter, Medication, MedicationIntake, MedicationTiming } from './types';
 
 /** 2026年のローカル時刻を作る(month は 1〜12) */
 function at(month: number, day: number, hour = 12, minute = 0): Date {
@@ -246,5 +249,41 @@ describe('表示の文言', () => {
       { id: 'c', medicationId: 'm', kind: 'recount', amount: 1, at: at(9, 10).toISOString() },
     ]);
     expect(logs.map((log) => log.id)).toEqual(['b', 'c', 'a']);
+  });
+});
+
+describe('記録画面の表示', () => {
+  const alterA = { id: 'alter-a', name: '人格A', color: '#4a90d9' } as Alter;
+  const alterById = new Map([[alterA.id, alterA]]);
+
+  it('完了表示は「人格A・21:30」、人格が「わからない」ときは「わからない・21:30」', () => {
+    expect(intakeLabelText(intake('i', at(9, 28, 21, 30), 'bedtime'), alterById)).toBe('人格A・21:30');
+    expect(intakeLabelText(intake('i', at(9, 28, 21, 30), 'bedtime', { alterId: null }), alterById)).toBe(
+      'わからない・21:30',
+    );
+  });
+
+  it('昨日の表示:記録ありは「昨日:人格A・21:40」、なしは「昨日は記録なし」、none は出さない', () => {
+    expect(toYesterdayLabel({ kind: 'record', intake: intake('i', at(9, 27, 21, 40), 'bedtime') }, alterById)).toEqual({
+      kind: 'record',
+      prefix: '昨日',
+      name: '人格A',
+      color: '#4a90d9',
+      time: '21:40',
+    });
+    expect(toYesterdayLabel({ kind: 'noRecord' }, alterById)).toEqual({ kind: 'missing', text: '昨日は記録なし' });
+    expect(toYesterdayLabel({ kind: 'none' }, alterById)).toBeNull();
+  });
+
+  it('頓服の前回:「前回:人格A・3時間前」、記録がなければ出さない', () => {
+    const last = intake('i', at(9, 28, 9), null);
+    expect(toLastAsNeededLabel(last, at(9, 28, 12, 30), alterById)).toEqual({
+      kind: 'record',
+      prefix: '前回',
+      name: '人格A',
+      color: '#4a90d9',
+      time: '3時間前',
+    });
+    expect(toLastAsNeededLabel(null, at(9, 28, 12), alterById)).toBeNull();
   });
 });

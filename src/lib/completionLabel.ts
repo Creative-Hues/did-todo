@@ -17,10 +17,10 @@ export interface CompletionLabel {
 
 /**
  * 記録した人格の名前と色。非表示の人格も名前と色で表示する(SPEC.md 3.1)。
- * 人格が見つからないときは「わからない」として扱う。
+ * 人格が見つからないときは「わからない」として扱う。服薬記録にも使う。
  */
 export function resolveRecordAlter(
-  record: CompletionRecord,
+  record: Pick<CompletionRecord, 'alterId'>,
   alterById: ReadonlyMap<string, Alter>,
 ): Pick<CompletionLabel, 'name' | 'color'> {
   const alter = record.alterId === null ? undefined : alterById.get(record.alterId);

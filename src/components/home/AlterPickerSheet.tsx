@@ -1,6 +1,6 @@
 // 記録する人格を選ぶシート(SPEC.md 6.2)。下から出る
-import { UNKNOWN_ALTER_NAME } from '../../lib/completionLabel';
 import type { Alter, Task } from '../../lib/types';
+import { AlterButtons } from '../common/AlterButtons';
 
 interface Props {
   task: Task;
@@ -18,22 +18,7 @@ export function AlterPickerSheet({ task, alters, onSelect, onCancel }: Props) {
         <h2 id="picker-title" className="sheet__title">
           「{task.name}」をやったのは?
         </h2>
-        <div className="picker-buttons">
-          {alters.map((alter) => (
-            <button
-              key={alter.id}
-              type="button"
-              className="picker-button"
-              style={{ backgroundColor: alter.color }}
-              onClick={() => onSelect(alter.id)}
-            >
-              {alter.name}
-            </button>
-          ))}
-          <button type="button" className="picker-button picker-button--unknown" onClick={() => onSelect(null)}>
-            {UNKNOWN_ALTER_NAME}
-          </button>
-        </div>
+        <AlterButtons alters={alters} onSelect={onSelect} />
         <button type="button" className="sheet__cancel" onClick={onCancel}>
           キャンセル
         </button>

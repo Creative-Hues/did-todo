@@ -1,7 +1,10 @@
 // 服薬の計算(SPEC.md 7章)。すべて純粋関数(同じ入力なら同じ結果)。
 // 日付の計算は period.ts の関数を通す。現在時刻は引数で受け取る。
+import { resolveRecordAlter } from './completionLabel';
 import { addLogicalDays, startOfLogicalDate, toLogicalDate, type LogicalDate } from './period';
-import type { Medication, MedicationIntake, MedicationTiming, StockLog } from './types';
+import type { PreviousPeriodLabel } from './previousPeriod';
+import { formatClockOf, formatElapsed } from './timeFormat';
+import type { Alter, Medication, MedicationIntake, MedicationTiming, StockLog } from './types';
 
 /** 時間帯の並び順(画面の上から) */
 export const TIMINGS: readonly MedicationTiming[] = ['morning', 'noon', 'evening', 'bedtime'];
@@ -231,4 +234,41 @@ export function stockLogAmountText(log: Pick<StockLog, 'kind' | 'amount'>): stri
 /** 在庫の履歴を新しい順に並べる */
 export function sortStockLogs(logs: readonly StockLog[]): StockLog[] {
   return [...logs].sort((a, b) => b.at.localeCompare(a.at));
+}
+
+/** 服薬記録の完了表示「人格A・21:30」(時刻は実際の時刻。SPEC.md 7.4) */
+export function intakeLabelText(intake: MedicationIntake, alterById: ReadonlyMap<string, Alter>): string {
+  return `${resolveRecordAlter(intake, alterById).name}・${formatClockOf(intake.takenAt)}`;
+}
+
+/** 時間帯の「昨日」の表示(「昨日:人格B・21:40」「昨日は記録なし」)。何も出さないときは null */
+export function toYesterdayLabel(
+  result: YesterdayResult,
+  alterById: ReadonlyMap<string, Alter>,
+): PreviousPeriodLabel | null {
+  switch (result.kind) {
+    case 'none':
+      return null;
+    case 'record':
+      return {
+        kind: 'record',
+        prefix: '昨日',
+        ...resolveRecordAlter(result.intake, alterById),
+        time: formatClockOf(result.intake.takenAt),
+      };
+    case 'noRecord':
+      return { kind: 'missing', text: '昨日は記録なし' };
+  }
+}
+
+/** 頓服の「前回:人格B・3時間前」(SPEC.md 7.5)。記録がなければ null */
+export function toLastAsNeededLabel(
+  intake: MedicationIntake | null,
+  now: Date,
+  alterById: ReadonlyMap<string, Alter>,
+): PreviousPeriodLabel | null {
+  if (intake === null) {
+    return null;
+  }
+  return { kind: 'record', prefix: '前回', ...resolveRecordAlter(intake, alterById), time: formatElapsed(intake.takenAt, now) };
 }
