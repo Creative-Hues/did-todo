@@ -1,15 +1,17 @@
 // バケットの項目の入力・編集画面(SPEC.md 9.1・9.2)
 // 上に「人格Aのリスト」を出す。追加・変更は、保存の前に本人確認を出す(何も変えていなければ出さずに戻る)
 // 編集では、「まだ」の項目は「叶ったことにする」、叶った項目は協力者の修正と「「まだ」に戻す」ができる
+// 削除もここから1件ずつできる(本人確認は複数選択の削除と同じ。SPEC.md 9.3)
 import { useState } from 'react';
 import { BucketItemForm } from '../components/bucket/BucketItemForm';
 import { OwnerHeading } from '../components/bucket/OwnerHeading';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { db } from '../db/db';
-import { addBucketItem, unachieveBucketItem, updateBucketItem } from '../db/bucketRepo';
+import { addBucketItem, deleteBucketItems, unachieveBucketItem, updateBucketItem } from '../db/bucketRepo';
 import {
   achieveConfirmMessage,
   addConfirmMessage,
+  deleteConfirmMessage,
   editConfirmMessage,
   helperChoices,
   isBucketItemChanged,
@@ -30,11 +32,12 @@ interface Props {
   onAchieve: (item: BucketItem) => void;
 }
 
-/** 出している本人確認:保存(追加・変更)/ 叶ったことにする / 「まだ」に戻す */
+/** 出している本人確認:保存(追加・変更)/ 叶ったことにする / 「まだ」に戻す / 削除 */
 type Confirming =
   | { kind: 'save'; body: string; helperIds: string[] }
   | { kind: 'achieve' }
-  | { kind: 'unachieve' };
+  | { kind: 'unachieve' }
+  | { kind: 'delete' };
 
 export function BucketItemEditScreen({ owner, item, alters, onBack, onAchieve }: Props) {
   const [confirming, setConfirming] = useState<Confirming | null>(null);
@@ -67,6 +70,16 @@ export function BucketItemEditScreen({ owner, item, alters, onBack, onAchieve }:
   const handleUnachieve = async (target: BucketItem) => {
     try {
       await unachieveBucketItem(db, target.id);
+      onBack();
+    } catch (error) {
+      setConfirming(null);
+      showSaveError(error);
+    }
+  };
+
+  const handleDelete = async (target: BucketItem) => {
+    try {
+      await deleteBucketItems(db, [target.id], new Date());
       onBack();
     } catch (error) {
       setConfirming(null);
@@ -113,6 +126,17 @@ export function BucketItemEditScreen({ owner, item, alters, onBack, onAchieve }:
             />
           )
         );
+      case 'delete':
+        return (
+          item && (
+            <ConfirmDialog
+              message={deleteConfirmMessage(owner.name, 1)}
+              confirmLabel="削除する"
+              onConfirm={() => handleDelete(item)}
+              onCancel={cancel}
+            />
+          )
+        );
     }
   };
 
@@ -155,6 +179,9 @@ export function BucketItemEditScreen({ owner, item, alters, onBack, onAchieve }:
               {dirty && <p className="edit-actions__note">先に「保存」を押してください</p>}
             </>
           )}
+          <button type="button" className="danger-button" onClick={() => setConfirming({ kind: 'delete' })}>
+            この項目を削除する
+          </button>
         </section>
       )}
       {renderConfirm()}

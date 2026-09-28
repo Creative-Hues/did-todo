@@ -1,16 +1,24 @@
 // バケットタブ(SPEC.md 9章):人格ごとの「いつかやりたいこと」のリストと、入力・編集画面
 // 画面上部で人格を切り替える。「まだ」を上、「叶ったこと」を下に分け、どちらも ≡ で並び替える
 // 叶ったことにするときは、本人確認 → 協力者を選ぶ画面 → 保存(SPEC.md 9.2)
+// 「選択」で複数の項目を選び、本人確認のあとまとめて削除する(SPEC.md 9.3)
 import { useState } from 'react';
 import { AlterSwitcher } from '../components/bucket/AlterSwitcher';
 import { BucketItemRow } from '../components/bucket/BucketItemRow';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { SortableList } from '../components/common/SortableList';
 import { db } from '../db/db';
-import { reorderBucketItems } from '../db/bucketRepo';
+import { deleteBucketItems, reorderBucketItems } from '../db/bucketRepo';
 import { useListScroll } from '../hooks/useListScroll';
 import { useLiveQuery } from '../hooks/useLiveQuery';
-import { achieveConfirmMessage, resolveSelectedOwner, splitBucketItems, switchableAlters } from '../lib/bucket';
+import {
+  achieveConfirmMessage,
+  deleteConfirmMessage,
+  resolveSelectedOwner,
+  splitBucketItems,
+  switchableAlters,
+} from '../lib/bucket';
+import { showSaveError } from '../lib/showError';
 import type { BucketItem } from '../lib/types';
 import { BucketHelperScreen } from './BucketHelperScreen';
 import { BucketItemEditScreen } from './BucketItemEditScreen';
@@ -32,6 +40,9 @@ export function BucketScreen() {
   const [view, setView] = useState<View>({ kind: 'list' });
   // 一覧の「叶った」で本人確認を出している項目
   const [achieving, setAchieving] = useState<BucketItem | null>(null);
+  // 選択中なら、選んだ項目のID。選択中でなければ null
+  const [checkedIds, setCheckedIds] = useState<ReadonlySet<string> | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
   const rememberScroll = useListScroll(view.kind === 'list');
 
   const open = (next: View) => {
@@ -107,12 +118,56 @@ export function BucketScreen() {
 
   const { pending, achieved } = splitBucketItems(items, owner.id);
   const openItem = (item: BucketItem) => open({ kind: 'item', ownerId: owner.id, id: item.id });
+  const selecting = checkedIds !== null;
+  // 選んだもののうち、今この人格の一覧に出ている項目だけを数える(ほかの画面で消えた場合に備える)
+  const checkedItems = checkedIds ? [...pending, ...achieved].filter((item) => checkedIds.has(item.id)) : [];
+
+  const toggle = (item: BucketItem) => {
+    setCheckedIds((current) => {
+      const next = new Set(current);
+      if (next.has(item.id)) {
+        next.delete(item.id);
+      } else {
+        next.add(item.id);
+      }
+      return next;
+    });
+  };
+
+  // 人格を切り替えたら、選択をやめる(ほかの人格の項目を選んだまま消さないため)
+  const handleSelectOwner = (alterId: string) => {
+    setSelectedId(alterId);
+    setCheckedIds(null);
+  };
+
+  const handleDelete = async () => {
+    try {
+      await deleteBucketItems(
+        db,
+        checkedItems.map((item) => item.id),
+        new Date(),
+      );
+      setConfirmingDelete(false);
+      setCheckedIds(null);
+    } catch (error) {
+      showSaveError(error);
+    }
+  };
 
   const renderSection = (title: string, sectionItems: BucketItem[], canAchieve: boolean) => (
     <section className="home-section">
       <h2>{title}</h2>
       {sectionItems.length === 0 ? (
         <p className="empty">まだありません</p>
+      ) : selecting ? (
+        // 選択中は並び替え・編集・「叶った」をしない
+        <ul className="item-list">
+          {sectionItems.map((item) => (
+            <li key={item.id} className="plain-row">
+              <BucketItemRow item={item} alterById={alterById} onOpen={toggle} selected={checkedIds.has(item.id)} />
+            </li>
+          ))}
+        </ul>
       ) : (
         <SortableList
           className="item-list"
@@ -136,11 +191,44 @@ export function BucketScreen() {
     <main className="app">
       <header className="screen-header">
         <h1>バケット</h1>
+        {selecting ? (
+          <button type="button" onClick={() => setCheckedIds(null)}>
+            キャンセル
+          </button>
+        ) : (
+          <button
+            type="button"
+            disabled={pending.length + achieved.length === 0}
+            onClick={() => setCheckedIds(new Set())}
+          >
+            選択
+          </button>
+        )}
       </header>
-      <AlterSwitcher alters={switchableAlters(alters)} selectedId={owner.id} onSelect={setSelectedId} />
-      <button type="button" className="add-button" onClick={() => open({ kind: 'item', ownerId: owner.id, id: null })}>
-        ＋ 追加
-      </button>
+      {selecting && (
+        // 選択中の操作。一覧が長くても押せるよう、上に貼り付けて表示する
+        <div className="selection-bar">
+          <span>{checkedItems.length}件を選択中</span>
+          <button
+            type="button"
+            className="danger-button"
+            disabled={checkedItems.length === 0}
+            onClick={() => setConfirmingDelete(true)}
+          >
+            {checkedItems.length}件を削除
+          </button>
+        </div>
+      )}
+      <AlterSwitcher alters={switchableAlters(alters)} selectedId={owner.id} onSelect={handleSelectOwner} />
+      {!selecting && (
+        <button
+          type="button"
+          className="add-button"
+          onClick={() => open({ kind: 'item', ownerId: owner.id, id: null })}
+        >
+          ＋ 追加
+        </button>
+      )}
       {renderSection('まだ', pending, true)}
       {renderSection('叶ったこと', achieved, false)}
       {achieving && (
@@ -153,6 +241,14 @@ export function BucketScreen() {
             open({ kind: 'helpers', ownerId: owner.id, id: achieving.id, returnTo: { kind: 'list' } });
           }}
           onCancel={() => setAchieving(null)}
+        />
+      )}
+      {confirmingDelete && (
+        <ConfirmDialog
+          message={deleteConfirmMessage(owner.name, checkedItems.length)}
+          confirmLabel="削除する"
+          onConfirm={handleDelete}
+          onCancel={() => setConfirmingDelete(false)}
         />
       )}
     </main>

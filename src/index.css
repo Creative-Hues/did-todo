@@ -948,3 +948,11 @@ textarea {
 .bucket-row__achieve {
   flex: 0 0 auto;
 }
+
+/* 選択中の1件:チェックボックス+中身を横に並べる(SPEC.md 9.3) */
+.bucket-item--selectable {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+}
