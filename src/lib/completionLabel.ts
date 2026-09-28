@@ -1,4 +1,4 @@
-// 完了の表示内容「人格A・9:12」を作る(SPEC.md 5.1、5.3)。純粋関数。
+// 完了の表示内容「人格A・9:12」を作る(SPEC.md 6.1、6.3)。純粋関数。
 import type { SectionKey } from './home';
 import { formatCompletionTime } from './timeFormat';
 import type { Alter, CompletionRecord } from './types';

@@ -1,4 +1,4 @@
-// 記録する人格を選ぶシート(SPEC.md 5.2)。下から出る
+// 記録する人格を選ぶシート(SPEC.md 6.2)。下から出る
 import { UNKNOWN_ALTER_NAME } from '../../lib/completionLabel';
 import type { Alter, Task } from '../../lib/types';
 

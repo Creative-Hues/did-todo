@@ -1,4 +1,4 @@
-// 人格の追加・編集画面(SPEC.md 5.4)。編集のときは非表示/再表示と削除もここから行う
+// 人格の追加・編集画面(SPEC.md 10.1)。編集のときは非表示/再表示と削除もここから行う
 import { useState } from 'react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { AlterForm } from '../components/settings/AlterForm';

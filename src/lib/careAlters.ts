@@ -19,7 +19,7 @@ export function mergeCareAlterIds(
 
 /**
  * ホーム画面の「気にしている人格」のラベルに使う人格を、人格の order 順で返す。
- * 非表示の人格も含める(SPEC.md 5.1)。見つからないIDは飛ばす。
+ * 非表示の人格も含める(SPEC.md 6.1)。見つからないIDは飛ばす。
  */
 export function resolveCareAlters(careAlterIds: readonly string[], alters: readonly Alter[]): Alter[] {
   const ids = new Set(careAlterIds);

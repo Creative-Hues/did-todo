@@ -1,4 +1,4 @@
-// タスクの追加・編集画面(SPEC.md 5.4)。編集のときは非表示/再表示と削除もここから行う
+// タスクの追加・編集画面(SPEC.md 6.4)。編集のときは非表示/再表示と削除もここから行う
 import { useState } from 'react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { TaskForm } from '../components/settings/TaskForm';

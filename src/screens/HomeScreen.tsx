@@ -1,4 +1,4 @@
-// ホーム画面(SPEC.md 5.1):今日・今週・今月の欄と、記録・取り消し
+// ホーム画面(SPEC.md 6.1):今日・今週・今月の欄と、記録・取り消し
 import { useState } from 'react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { AlterPickerSheet } from '../components/home/AlterPickerSheet';
@@ -26,7 +26,7 @@ export function HomeScreen({ onOpenSettings }: Props) {
   const records = useLiveQuery(() => db.records.toArray());
   const now = useNow();
   const [modal, setModal] = useState<Modal>(null);
-  // 並び替えモード中か(SPEC.md 5.1)
+  // 並び替えモード中か(SPEC.md 6.1)
   const [reordering, setReordering] = useState(false);
 
   const alterById = new Map((alters ?? []).map((alter) => [alter.id, alter]));

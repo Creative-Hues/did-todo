@@ -1,4 +1,4 @@
-// 完了記録の追加・取り消し(SPEC.md 4.4、5.2、5.3)
+// 完了記録の追加・取り消し(SPEC.md 4.4、6.2、6.3)
 import type { AppDatabase } from './db';
 import { getCurrentPeriodRecords, getTaskStatus } from '../lib/status';
 import type { CompletionRecord, Task } from '../lib/types';

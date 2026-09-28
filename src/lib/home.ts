@@ -1,4 +1,4 @@
-// ホーム画面の欄の組み立て(SPEC.md 5.1)。純粋関数。
+// ホーム画面の欄の組み立て(SPEC.md 6.1)。純粋関数。
 import { getTaskStatus, type TaskStatus } from './status';
 import type { CompletionRecord, Cycle, Task } from './types';
 
@@ -50,7 +50,7 @@ function compareItems(a: HomeItem, b: HomeItem): number {
 }
 
 /**
- * 並び替えモード用に、欄の中を未完了・完了の区別なく order 順だけで並べ直す(SPEC.md 5.1)。
+ * 並び替えモード用に、欄の中を未完了・完了の区別なく order 順だけで並べ直す(SPEC.md 6.1)。
  * 欄に入るタスクは buildHomeSections で決めたものから変えない
  */
 export function sortSectionByOrder(section: HomeSection): HomeSection {
