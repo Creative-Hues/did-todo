@@ -9,6 +9,9 @@ function Icon({ children }: { children: ReactNode }) {
   return (
     <svg
       className="tab-bar__icon"
+      // 大きさを直接書いておく(CSS が読み込まれる前でも、SVG が既定の 300×150 に広がらないように)
+      width="24"
+      height="24"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
