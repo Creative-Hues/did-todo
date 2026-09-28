@@ -1,7 +1,7 @@
 // 受診メモタブ(SPEC.md 8章):メモの一覧と、入力・編集画面
 // 「まだ話していないもの」を上、「話したもの」を下に分ける(8.2)
 // 各メモの下にコメント(8.4)を古い順に並べる
-// 分類の設定・診察用の表示は、このあとの段階で足す
+// 見出しの行に「分類の設定」(8.1)。診察用の表示は、このあとの段階で足す
 import { useState } from 'react';
 import { ClinicNoteItem } from '../components/clinic/ClinicNoteItem';
 import { CommentList } from '../components/clinic/CommentList';
@@ -12,12 +12,14 @@ import { useLiveQuery } from '../hooks/useLiveQuery';
 import { groupCommentsByNote, splitClinicNotes } from '../lib/clinicNotes';
 import { showSaveError } from '../lib/showError';
 import type { ClinicNote } from '../lib/types';
+import { CategorySettingsScreen } from './CategorySettingsScreen';
 import { ClinicNoteCommentEditScreen } from './ClinicNoteCommentEditScreen';
 import { ClinicNoteEditScreen } from './ClinicNoteEditScreen';
 
-/** 表示中の画面:一覧 / メモの編集 / コメントの編集(id が null なら新しく書く) */
+/** 表示中の画面:一覧 / メモの編集 / コメントの編集(id が null なら新しく書く) / 分類の設定 */
 type View =
   | { kind: 'list' }
+  | { kind: 'categories' }
   | { kind: 'note'; id: string | null }
   | { kind: 'comment'; noteId: string; id: string | null };
 
@@ -41,6 +43,10 @@ export function ClinicNoteScreen() {
         <p>読み込み中…</p>
       </main>
     );
+  }
+
+  if (view.kind === 'categories') {
+    return <CategorySettingsScreen onBack={backToList} />;
   }
 
   if (view.kind === 'note') {
@@ -117,6 +123,11 @@ export function ClinicNoteScreen() {
     <main className="app">
       <header className="screen-header">
         <h1>受診メモ</h1>
+        <div className="header-buttons">
+          <button type="button" onClick={() => open({ kind: 'categories' })}>
+            分類の設定
+          </button>
+        </div>
       </header>
       <button type="button" className="add-button" onClick={() => open({ kind: 'note', id: null })}>
         ＋ メモを書く
