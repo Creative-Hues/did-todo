@@ -7,6 +7,7 @@ import {
   clinicViewTitle,
   deleteConfirmMessage,
   groupCommentsByNote,
+  selectableAuthors,
   splitClinicNotes,
   validateClinicNoteCommentForm,
   validateClinicNoteForm,
@@ -235,5 +236,18 @@ describe('文字としてコピー(SPEC.md 8.3)', () => {
 
   it('メモがないときは表題だけ', () => {
     expect(buildClinicViewText([], new Date(2026, 8, 28))).toBe('受診メモ(2026/9/28)');
+  });
+});
+
+describe('書いた人格の選択肢', () => {
+  const hidden = alter('h', '人格C', 2, true);
+
+  it('新しく書くときは、非表示でない人格を並び順で出す', () => {
+    expect(selectableAuthors([alterA, hidden, alterB]).map((a) => a.id)).toEqual(['b', 'a']);
+  });
+
+  it('編集するメモの人格が非表示なら、その人格も出す', () => {
+    expect(selectableAuthors([alterA, hidden, alterB], 'h').map((a) => a.id)).toEqual(['b', 'a', 'h']);
+    expect(selectableAuthors([alterA, hidden, alterB], null).map((a) => a.id)).toEqual(['b', 'a']);
   });
 });

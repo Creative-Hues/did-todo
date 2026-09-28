@@ -4,6 +4,7 @@
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { TabBar, type TabKey } from './components/common/TabBar';
 import { AlterInfoScreen } from './screens/AlterInfoScreen';
+import { ClinicNoteScreen } from './screens/ClinicNoteScreen';
 import { HomeScreen } from './screens/HomeScreen';
 import { MedicationHistoryScreen } from './screens/MedicationHistoryScreen';
 import { MedicationScreen } from './screens/MedicationScreen';
@@ -55,7 +56,7 @@ function App() {
       history: <MedicationHistoryScreen onBack={() => setMedicationView('record')} />,
       settings: <MedicationSettingsScreen onBack={() => setMedicationView('record')} />,
     }[medicationView],
-    clinic: <PlaceholderScreen title="受診メモ" />,
+    clinic: <ClinicNoteScreen />,
     bucket: <PlaceholderScreen title="バケット" />,
     alters: <AlterInfoScreen />,
   };

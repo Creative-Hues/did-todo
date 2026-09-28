@@ -245,3 +245,14 @@ export function buildClinicViewText(groups: readonly ClinicViewGroup[], now: Dat
   });
   return [clinicViewTitle(now), ...blocks].join('\n\n');
 }
+
+/**
+ * 書いた人格の選択肢(SPEC.md 8.1・8.4)。非表示でない人格を並び順で出す。
+ * 編集するメモ・コメントの人格が非表示なら、その人格も並び順の位置に出す(選ばれたままにするため)
+ * @param savedAlterId 編集するメモ・コメントに保存されている人格のID(新しく書くときは渡さない)
+ */
+export function selectableAuthors(alters: readonly Alter[], savedAlterId?: string | null): Alter[] {
+  return [...alters]
+    .filter((alter) => !alter.hidden || alter.id === savedAlterId)
+    .sort((a, b) => a.order - b.order);
+}
