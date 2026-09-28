@@ -633,3 +633,28 @@ body {
 .picker-button:disabled {
   opacity: 0.4;
 }
+
+/* 薬の名前と「この回は記録なし」を横に並べる(長い名前は「…」に省略) */
+.intake-medication__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* 記録しなかった薬(SPEC.md 7.4)。ふつうの文字色の小さい文字(責める色・警告の色は使わない) */
+.intake-skipped {
+  flex: 0 0 auto;
+  font-size: 0.8125rem;
+  color: inherit;
+}
+
+/* 記録済みの時間帯の欄:ToDo の完了と同じ濃さで、薄くする部分だけを薄くする。
+   残りの目立つ色・「残りの数を確認してください」・「この回は記録なし」は薄くしない(SPEC.md 7.4) */
+.intake-section--done .task-item__status,
+.intake-section--done .intake-medication__name,
+.intake-section--done .intake-stock__text:not(.stock-text--low),
+.intake-section--done .task-item__done-by,
+.intake-section--done .task-item__previous {
+  opacity: 0.45;
+}

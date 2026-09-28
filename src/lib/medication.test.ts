@@ -5,6 +5,7 @@ import {
   dailyDose,
   daysLeft,
   findLastAsNeeded,
+  findSkippedMedicationIds,
   groupIntakesByLogicalDay,
   isLowStock,
   needsRecount,
@@ -285,5 +286,23 @@ describe('記録画面の表示', () => {
       time: '3時間前',
     });
     expect(toLastAsNeededLabel(null, at(9, 28, 12), alterById)).toBeNull();
+  });
+});
+
+describe('この回は記録なし', () => {
+  const medications = [med({ id: 'a' }), med({ id: 'b' }), med({ id: 'c' })];
+
+  it('記録済みの時間帯で、記録しなかった薬だけを返す', () => {
+    const todayIntakes = [intake('i1', at(9, 28, 8), 'morning', { medicationId: 'a' })];
+    expect([...findSkippedMedicationIds({ medications, todayIntakes })]).toEqual(['b', 'c']);
+  });
+
+  it('全部記録していれば空', () => {
+    const todayIntakes = medications.map((m) => intake(m.id, at(9, 28, 8), 'morning', { medicationId: m.id }));
+    expect(findSkippedMedicationIds({ medications, todayIntakes }).size).toBe(0);
+  });
+
+  it('まだ記録していない時間帯では空(未記録の薬に「この回は記録なし」を出さない)', () => {
+    expect(findSkippedMedicationIds({ medications, todayIntakes: [] }).size).toBe(0);
   });
 });

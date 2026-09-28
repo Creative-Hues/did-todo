@@ -150,6 +150,18 @@ export function buildTimingSections(
   });
 }
 
+/**
+ * 記録済みの時間帯で、記録しなかった(シートでチェックを外した)薬のID(SPEC.md 7.4)。
+ * 「この回は記録なし」を出すのに使う。まだ記録していない時間帯では空
+ */
+export function findSkippedMedicationIds(section: Pick<TimingSection, 'medications' | 'todayIntakes'>): Set<string> {
+  if (section.todayIntakes.length === 0) {
+    return new Set();
+  }
+  const taken = new Set(section.todayIntakes.map((i) => i.medicationId));
+  return new Set(section.medications.filter((m) => !taken.has(m.id)).map((m) => m.id));
+}
+
 /** 頓服の前回の記録(SPEC.md 7.5)。なければ null */
 export function findLastAsNeeded(medicationId: string, intakes: readonly MedicationIntake[]): MedicationIntake | null {
   return findLatestIntake(intakes.filter((i) => i.medicationId === medicationId && i.timing === null));
