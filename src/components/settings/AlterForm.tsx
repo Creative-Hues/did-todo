@@ -26,7 +26,8 @@ export function AlterForm({ initial, onSubmit, onCancel }: Props) {
       setError('名前を入力してください');
       return;
     }
-    void onSubmit({ name: normalized, color });
+    // 区分の選択は段階Bで足す。それまでは今の区分をそのまま保つ
+    void onSubmit({ name: normalized, color, categoryId: initial?.categoryId ?? null });
   };
 
   return (

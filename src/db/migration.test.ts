@@ -48,6 +48,13 @@ function openV3(): Dexie {
   return v3;
 }
 
+/** 版4のときの定義(db.ts の version(1)〜version(4) と同じ) */
+function openV4(): Dexie {
+  const v4 = openV3();
+  v4.version(4).stores({ clinicNoteComments: 'id, noteId, createdAt' });
+  return v4;
+}
+
 /** 最初の4つの時間帯の ID・名前・並び順・非表示(作成日時は版を上げた時刻なので比べない) */
 const DEFAULT_TIMING_ROWS = [
   ['morning', '朝食後', 0, false],
@@ -110,7 +117,7 @@ describe('データベースの版を上げる', () => {
     database = new AppDatabase(DB_NAME);
     await database.open();
 
-    expect(database.verno).toBe(4);
+    expect(database.verno).toBe(5);
     expect(await database.alters.orderBy('order').toArray()).toEqual([
       { ...alterA, reading: '', categoryId: null, age: '', gender: '', identify: '' },
       { ...alterB, reading: '', categoryId: null, age: '', gender: '', identify: '' },
@@ -237,7 +244,7 @@ describe('データベースの版を上げる', () => {
       database = new AppDatabase(DB_NAME);
       await database.open();
 
-      expect(database.verno).toBe(4);
+      expect(database.verno).toBe(5);
       expect(await timingRows(database)).toEqual(DEFAULT_TIMING_ROWS);
       expect(await database.medications.orderBy('order').toArray()).toEqual(medications);
       expect(await database.medicationIntakes.orderBy('id').toArray()).toEqual(intakes);
@@ -255,7 +262,7 @@ describe('データベースの版を上げる', () => {
 
       database = new AppDatabase(DB_NAME);
       await database.open();
-      expect(database.verno).toBe(4);
+      expect(database.verno).toBe(5);
       expect(await timingRows(database)).toEqual(DEFAULT_TIMING_ROWS);
     });
 
@@ -275,7 +282,18 @@ describe('データベースの版を上げる', () => {
       tasks: [task],
       records,
       categories: [{ id: 'cat-1', name: '主人格', order: 0, createdAt: '2026-09-01T00:00:00.000Z' }],
+      // 人格にも「全体のこと」にも見出しがあるので、版5でも見出しは足されない
+      // (読み出しは ID 順なので、ID 順に並べておく)
       profileSections: [
+        {
+          id: 'p0',
+          alterId: null,
+          title: 'みんなに共通の配慮',
+          body: '',
+          includeInPdf: true,
+          order: 0,
+          createdAt: '2026-09-01T00:00:00.000Z',
+        },
         {
           id: 'p1',
           alterId: 'alter-a',
@@ -365,7 +383,7 @@ describe('データベースの版を上げる', () => {
       database = new AppDatabase(DB_NAME);
       await database.open();
 
-      expect(database.verno).toBe(4);
+      expect(database.verno).toBe(5);
       for (const [name, rows] of Object.entries(v3Rows)) {
         expect(await database.table(name).toArray(), name).toEqual(rows);
       }
@@ -390,7 +408,7 @@ describe('データベースの版を上げる', () => {
       v1.close();
       database = new AppDatabase(DB_NAME);
       await database.open();
-      expect(database.verno).toBe(4);
+      expect(database.verno).toBe(5);
       expect(await database.clinicNoteComments.count()).toBe(0);
       expect(await database.clinicNoteCategories.count()).toBe(7);
       expect(await database.medicationTimings.count()).toBe(4);
@@ -399,10 +417,129 @@ describe('データベースの版を上げる', () => {
 
       database = new AppDatabase(DB_NAME);
       await database.open();
-      expect(database.verno).toBe(4);
+      expect(database.verno).toBe(5);
       expect(await database.clinicNoteComments.count()).toBe(0);
       expect(await database.clinicNoteCategories.count()).toBe(7);
       expect(await database.medicationTimings.count()).toBe(4);
+    });
+  });
+
+  describe('版4 → 版5(最初のプロフィールの見出し。SPEC.md 3.5・10.4・10.5)', () => {
+    const DEFAULT_TITLES = ['機能・役割', '特徴', '記憶', '身体・感覚', '対応のお願い', '交代の傾向', '経緯', 'その他'];
+    const COMMON_TITLES = ['みんなに共通の配慮', '交代のときの様子', '誰が出ているかわからないとき'];
+    const withProfile = (alter: AlterV1, categoryId: string | null) => ({
+      ...alter,
+      reading: '',
+      categoryId,
+      age: '',
+      gender: '',
+      identify: '',
+    });
+    const alterC: AlterV1 = { ...alterA, id: 'alter-c', name: '人格C', order: 2 };
+    /** 人格A だけ見出しがあり、B(非表示)と C にはない。「全体のこと」の見出しもない */
+    const ownSection = {
+      id: 'p1',
+      alterId: 'alter-a',
+      title: '好きなもの',
+      body: '海',
+      includeInPdf: false,
+      order: 0,
+      createdAt: '2026-09-01T00:00:00.000Z',
+    };
+    const v4Rows: Record<string, object[]> = {
+      alters: [withProfile(alterA, 'cat-1'), withProfile(alterB, null), withProfile(alterC, null)],
+      tasks: [task],
+      records,
+      categories: [{ id: 'cat-1', name: '主人格', order: 0, createdAt: '2026-09-01T00:00:00.000Z' }],
+      clinicNoteComments: [{ id: 'cm1', noteId: 'n1', alterId: null, body: '私も同じ', createdAt: '' }],
+      bucketItems: [
+        {
+          id: 'b1',
+          alterId: 'alter-a',
+          body: '海を見に行く',
+          order: 0,
+          createdAt: '2026-09-01T00:00:00.000Z',
+          achievedAt: null,
+          helperAlterIds: [],
+        },
+      ],
+      meta: [{ key: 'lastBackupExportedAt', value: '2026-09-28T00:00:00.000Z' }],
+    };
+
+    /** その人格(null なら「全体のこと」)の見出しの [見出し, 中身, PDFに入れる] を並び順で */
+    async function sectionRows(db: AppDatabase, alterId: string | null) {
+      const sections = await db.profileSections.filter((s) => s.alterId === alterId).toArray();
+      return sections.sort((a, b) => a.order - b.order).map((s) => [s.title, s.body, s.includeInPdf]);
+    }
+    const defaultRows = DEFAULT_TITLES.map((title) => [title, '', title !== '経緯']);
+    const commonRows = COMMON_TITLES.map((title) => [title, '', true]);
+
+    async function openFromV4(): Promise<AppDatabase> {
+      const v4 = openV4();
+      await v4.open();
+      for (const [name, rows] of Object.entries(v4Rows)) {
+        await v4.table(name).bulkAdd(rows);
+      }
+      await v4.table('profileSections').add(ownSection);
+      v4.close();
+      const opened = new AppDatabase(DB_NAME);
+      await opened.open();
+      return opened;
+    }
+
+    it('今のデータは1文字も変わらず、見出しのない人格と「全体のこと」にだけ最初の見出しが入る', async () => {
+      database = await openFromV4();
+
+      expect(database.verno).toBe(5);
+      for (const [name, rows] of Object.entries(v4Rows)) {
+        expect(await database.table(name).toArray(), name).toEqual(rows);
+      }
+      // 人格A の見出しはそのまま(基本の見出しは足さない)
+      expect(await database.profileSections.filter((s) => s.alterId === 'alter-a').toArray()).toEqual([ownSection]);
+      // 非表示の人格B にも入る
+      expect(await sectionRows(database, 'alter-b')).toEqual(defaultRows);
+      expect(await sectionRows(database, 'alter-c')).toEqual(defaultRows);
+      expect(await sectionRows(database, null)).toEqual(commonRows);
+    });
+
+    it('開き直しても、見出しは増えない', async () => {
+      database = await openFromV4();
+      const count = await database.profileSections.count();
+      database.close();
+      database = new AppDatabase(DB_NAME);
+      expect(await database.profileSections.count()).toBe(count);
+      expect(count).toBe(1 + 8 + 8 + 3);
+    });
+
+    it('「全体のこと」の見出しがすでにあれば、足さない', async () => {
+      const v4 = openV4();
+      await v4.open();
+      const common = { ...ownSection, id: 'p0', alterId: null, title: '連絡先' };
+      await v4.table('profileSections').add(common);
+      v4.close();
+
+      database = new AppDatabase(DB_NAME);
+      await database.open();
+      expect(await database.profileSections.toArray()).toEqual([common]);
+    });
+
+    it('版1から開いても、新しく入れても、最初の見出しが1回だけ入る', async () => {
+      const v1 = openV1();
+      await v1.table('alters').add(alterA);
+      v1.close();
+      database = new AppDatabase(DB_NAME);
+      await database.open();
+      expect(await sectionRows(database, 'alter-a')).toEqual(defaultRows);
+      expect(await sectionRows(database, null)).toEqual(commonRows);
+      database.close();
+      await Dexie.delete(DB_NAME);
+
+      database = new AppDatabase(DB_NAME);
+      await database.open();
+      database.close();
+      database = new AppDatabase(DB_NAME);
+      expect(await sectionRows(database, null)).toEqual(commonRows);
+      expect(await database.profileSections.count()).toBe(3);
     });
   });
 });

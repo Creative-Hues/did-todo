@@ -98,8 +98,8 @@ describe('タスクの保存', () => {
   });
 
   it('編集して保存しても、非表示の人格は気にしている人格に残る', async () => {
-    const visible = await addAlter(database, { name: '人格A', color: '#4a90d9' }, now);
-    const hiddenAlter = await addAlter(database, { name: '人格B', color: '#d94a4a' }, now);
+    const visible = await addAlter(database, { name: '人格A', color: '#4a90d9', categoryId: null }, now);
+    const hiddenAlter = await addAlter(database, { name: '人格B', color: '#d94a4a', categoryId: null }, now);
     const task = await addTask(
       database,
       { name: '掃除', cycle: { type: 'daily' }, careAlterIds: [visible.id, hiddenAlter.id] },

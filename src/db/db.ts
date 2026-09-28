@@ -20,6 +20,7 @@ import { buildInitialMedicationTimings } from '../lib/medicationTimings';
 import {
   buildInitialCategories,
   buildInitialClinicNoteCategories,
+  buildMissingProfileSections,
   upgradeAlterToV2,
   type AlterV1,
 } from './initialData';
@@ -77,11 +78,17 @@ export class AppDatabase extends Dexie {
     // 版4:SPEC.md 3.5・8.4。受診メモのコメントのテーブルを足す
     // 空のテーブルを足すだけなので、変換の処理はない(今のデータには手を触れない)
     this.version(4).stores({ clinicNoteComments: 'id, noteId, createdAt' });
-    // 新しく入れたとき(版1〜4の upgrade を通らない)も、同じ最初のデータを入れる
+    // 版5:SPEC.md 3.5・10.4・10.5。テーブルの形は変えず、最初のプロフィールの見出しを入れる
+    // (見出しのない人格に基本の見出し、「全体のこと」に最初の見出し。今のデータは書き換えない)
+    this.version(5)
+      .stores({})
+      .upgrade((tx) => addMissingProfileSections(tx, new Date()));
+    // 新しく入れたとき(版1〜5の upgrade を通らない)も、同じ最初のデータを入れる
     this.on('populate', async (tx) => {
       const now = new Date();
       await addInitialData(tx, now);
       await addInitialMedicationTimings(tx, now);
+      await addMissingProfileSections(tx, now);
     });
   }
 }
@@ -100,6 +107,14 @@ async function addInitialMedicationTimings(tx: Transaction, now: Date): Promise<
   await tx
     .table<MedicationTiming, string>('medicationTimings')
     .bulkAdd(buildInitialMedicationTimings(now.toISOString()));
+}
+
+/** 見出しが1つもない人格と「全体のこと」に、最初の見出しを入れる(SPEC.md 3.5) */
+async function addMissingProfileSections(tx: Transaction, now: Date): Promise<void> {
+  const alters = await tx.table<Alter, string>('alters').toArray();
+  const sections = tx.table<ProfileSection, string>('profileSections');
+  const missing = buildMissingProfileSections(alters, await sections.toArray(), now, () => crypto.randomUUID());
+  await sections.bulkAdd(missing);
 }
 
 /** アプリ全体で使うデータベース */

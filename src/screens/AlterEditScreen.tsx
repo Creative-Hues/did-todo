@@ -3,8 +3,17 @@ import { useState } from 'react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { AlterForm } from '../components/settings/AlterForm';
 import { db } from '../db/db';
-import { addAlter, countAlterRecords, deleteAlter, setAlterHidden, updateAlter, type AlterInput } from '../db/alterRepo';
+import {
+  addAlter,
+  countAlterRecords,
+  countFilledProfileSections,
+  deleteAlter,
+  setAlterHidden,
+  updateAlter,
+  type AlterInput,
+} from '../db/alterRepo';
 import { useLiveQuery } from '../hooks/useLiveQuery';
+import { deleteAlterConfirmMessage } from '../lib/alterInfo';
 import { showSaveError } from '../lib/showError';
 import type { Alter } from '../lib/types';
 
@@ -19,6 +28,11 @@ export function AlterEditScreen({ alter, onBack }: Props) {
   // 完了記録・服薬記録・受診メモ・コメントの件数(1件以上あると削除できない。SPEC.md 3.1)
   const recordCount = useLiveQuery(
     () => (alter ? countAlterRecords(db, alter.id) : Promise.resolve(0)),
+    [alter?.id],
+  );
+  // 中身のある見出しの件数(削除の確認文に出す。SPEC.md 3.1)
+  const filledSectionCount = useLiveQuery(
+    () => (alter ? countFilledProfileSections(db, alter.id) : Promise.resolve(0)),
     [alter?.id],
   );
 
@@ -89,7 +103,7 @@ export function AlterEditScreen({ alter, onBack }: Props) {
       )}
       {alter && confirmingDelete && (
         <ConfirmDialog
-          message={`「${alter.name}」を削除しますか?`}
+          message={deleteAlterConfirmMessage(alter.name, filledSectionCount ?? 0)}
           confirmLabel="削除する"
           onConfirm={() => handleDelete(alter)}
           onCancel={() => setConfirmingDelete(false)}

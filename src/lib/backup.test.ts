@@ -327,6 +327,46 @@ describe('バケットの削除済みの印(フェーズ11で追加。SPEC.md 12
   });
 });
 
+describe('人格情報(フェーズ12。SPEC.md 12章)', () => {
+  /** 人格1人と、その見出し・「全体のこと」の見出しが入ったデータ */
+  function dataWithProfile(): BackupData {
+    const data = emptyData();
+    data.alters.push({
+      id: 'alter-a',
+      name: '人格A',
+      color: '#4a90d9',
+      hidden: false,
+      order: 0,
+      createdAt: '2026-09-01T00:00:00.000Z',
+      reading: '',
+      // ない区分を指していても読み込む(画面では「未分類」に出す)
+      categoryId: 'deleted-category',
+      age: '',
+      gender: '',
+      identify: '',
+    });
+    data.profileSections.push(
+      { id: 'p1', alterId: 'alter-a', title: '特徴', body: '明るい', includeInPdf: true, order: 0, createdAt: '' },
+      { id: 'p2', alterId: null, title: 'みんなに共通の配慮', body: '', includeInPdf: true, order: 0, createdAt: '' },
+    );
+    return data;
+  }
+
+  it('見出しと、ない区分を指す人格も、書き出したとおりに読み込める', () => {
+    const result = parseBackup(serializeBackup(buildBackup(dataWithProfile(), now)));
+    expect(result.ok && result.backup.data).toEqual(dataWithProfile());
+  });
+
+  it('ない人格を指している見出しがあるファイルは読み込まない', () => {
+    const data = dataWithProfile();
+    data.alters = [];
+    expect(parseBackup(serializeBackup(buildBackup(data, now)))).toEqual({
+      ok: false,
+      reason: '「プロフィール」の1件目の人格が見つかりません',
+    });
+  });
+});
+
 describe('書き出しのすすめ', () => {
   it('一度も書き出していなければすすめる', () => {
     expect(isBackupOverdue(null, now)).toBe(true);

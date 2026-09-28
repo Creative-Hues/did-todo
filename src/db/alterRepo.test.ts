@@ -2,7 +2,16 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from './db';
-import { addAlter, countAlterRecords, deleteAlter, reorderAlters, setAlterHidden, updateAlter } from './alterRepo';
+import {
+  addAlter,
+  countAlterRecords,
+  countFilledProfileSections,
+  deleteAlter,
+  reorderAlters,
+  setAlterHidden,
+  updateAlter,
+  updateAlterBasicInfo,
+} from './alterRepo';
 import { addTask } from './taskRepo';
 
 describe('人格の保存', () => {
@@ -18,8 +27,8 @@ describe('人格の保存', () => {
   });
 
   it('追加した人格が保存され、順番に order が付く', async () => {
-    const a = await addAlter(database, { name: '人格A', color: '#4a90d9' }, now);
-    const b = await addAlter(database, { name: '人格B', color: '#d94a4a' }, now);
+    const a = await addAlter(database, { name: '人格A', color: '#4a90d9', categoryId: null }, now);
+    const b = await addAlter(database, { name: '人格B', color: '#d94a4a', categoryId: null }, now);
 
     // 別の接続で開き直しても残っている(再起動の代わり)
     const reopened = new AppDatabase('did-todo-test-alters');
@@ -42,16 +51,54 @@ describe('人格の保存', () => {
     expect(b.order).toBe(1);
   });
 
-  it('名前と色を変更できる', async () => {
-    const a = await addAlter(database, { name: '人格A', color: '#4a90d9' }, now);
-    await updateAlter(database, a.id, { name: '人格A2', color: '#000000' });
+  it('名前・色・区分を変更できる', async () => {
+    const a = await addAlter(database, { name: '人格A', color: '#4a90d9', categoryId: null }, now);
+    await updateAlter(database, a.id, { name: '人格A2', color: '#000000', categoryId: 'cat-1' });
     const saved = await database.alters.get(a.id);
     expect(saved?.name).toBe('人格A2');
     expect(saved?.color).toBe('#000000');
+    expect(saved?.categoryId).toBe('cat-1');
+  });
+
+  it('追加のときに区分を選べる', async () => {
+    const a = await addAlter(database, { name: '人格A', color: '#4a90d9', categoryId: 'cat-1' }, now);
+    expect((await database.alters.get(a.id))?.categoryId).toBe('cat-1');
+  });
+
+  it('基本情報を変更でき、ほかの項目は変わらない', async () => {
+    const a = await addAlter(database, { name: '人格A', color: '#4a90d9', categoryId: 'cat-1' }, now);
+    await updateAlterBasicInfo(database, a.id, {
+      reading: 'じんかくえー',
+      age: '20代',
+      gender: '女性',
+      identify: '話し方がていねい\n左利き',
+    });
+    expect(await database.alters.get(a.id)).toEqual({
+      ...a,
+      reading: 'じんかくえー',
+      age: '20代',
+      gender: '女性',
+      identify: '話し方がていねい\n左利き',
+    });
+  });
+
+  it('追加した人格には基本の見出しが中身の空で入り、「経緯」だけ自分たちだけになる', async () => {
+    const a = await addAlter(database, { name: '人格A', color: '#4a90d9', categoryId: null }, now);
+    const sections = await database.profileSections.where('alterId').equals(a.id).sortBy('order');
+    expect(sections.map((s) => [s.title, s.body, s.includeInPdf, s.order])).toEqual([
+      ['機能・役割', '', true, 0],
+      ['特徴', '', true, 1],
+      ['記憶', '', true, 2],
+      ['身体・感覚', '', true, 3],
+      ['対応のお願い', '', true, 4],
+      ['交代の傾向', '', true, 5],
+      ['経緯', '', false, 6],
+      ['その他', '', true, 7],
+    ]);
   });
 
   it('非表示にしても削除されず、再表示できる', async () => {
-    const a = await addAlter(database, { name: '人格A', color: '#4a90d9' }, now);
+    const a = await addAlter(database, { name: '人格A', color: '#4a90d9', categoryId: null }, now);
     await setAlterHidden(database, a.id, true);
     expect((await database.alters.get(a.id))?.hidden).toBe(true);
     await setAlterHidden(database, a.id, false);
@@ -59,9 +106,9 @@ describe('人格の保存', () => {
   });
 
   it('並べ替えた順番で保存される', async () => {
-    const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
-    const b = await addAlter(database, { name: 'B', color: '#222222' }, now);
-    const c = await addAlter(database, { name: 'C', color: '#333333' }, now);
+    const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
+    const b = await addAlter(database, { name: 'B', color: '#222222', categoryId: null }, now);
+    const c = await addAlter(database, { name: 'C', color: '#333333', categoryId: null }, now);
     await reorderAlters(database, [c.id, a.id, b.id]);
     const ordered = await database.alters.orderBy('order').toArray();
     expect(ordered.map((alter) => alter.id)).toEqual([c.id, a.id, b.id]);
@@ -76,8 +123,8 @@ describe('人格の保存', () => {
     });
 
     it('記録がない人格は削除でき、タスクの「気にしている人格」からも外れる', async () => {
-      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
-      const b = await addAlter(database, { name: 'B', color: '#222222' }, now);
+      const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
+      const b = await addAlter(database, { name: 'B', color: '#222222', categoryId: null }, now);
       const withA = await addTask(database, { name: '掃除', cycle: { type: 'daily' }, careAlterIds: [a.id, b.id] }, now);
       const withoutA = await addTask(database, { name: '洗濯', cycle: { type: 'daily' }, careAlterIds: [b.id] }, now);
       // ほかの人格の記録や「わからない」の記録があっても、A は削除できる
@@ -91,8 +138,27 @@ describe('人格の保存', () => {
       expect(await database.records.count()).toBe(2);
     });
 
+    it('人格を削除すると、その人格の見出しも消え、ほかの人格と「全体のこと」の見出しは残る', async () => {
+      const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
+      const b = await addAlter(database, { name: 'B', color: '#222222', categoryId: null }, now);
+      const commonCount = await database.profileSections.filter((s) => s.alterId === null).count();
+      const [first] = await database.profileSections.where('alterId').equals(a.id).sortBy('order');
+      await database.profileSections.update(first.id, { body: '書いた中身' });
+      const second = (await database.profileSections.where('alterId').equals(a.id).sortBy('order'))[1];
+      // 空白だけの中身は「空」として数える
+      await database.profileSections.update(second.id, { body: '  \n ' });
+
+      expect(await countFilledProfileSections(database, a.id)).toBe(1);
+      // 見出しは、削除できるかどうかの判断に使わない
+      expect(await countAlterRecords(database, a.id)).toBe(0);
+      expect(await deleteAlter(database, a.id)).toBe(true);
+      expect(await database.profileSections.where('alterId').equals(a.id).count()).toBe(0);
+      expect(await database.profileSections.where('alterId').equals(b.id).count()).toBe(8);
+      expect(await database.profileSections.filter((s) => s.alterId === null).count()).toBe(commonCount);
+    });
+
     it('記録がある人格は削除されない', async () => {
-      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
+      const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
       const task = await addTask(database, { name: '掃除', cycle: { type: 'daily' }, careAlterIds: [a.id] }, now);
       await database.records.add(recordOf(a.id));
 
@@ -103,8 +169,8 @@ describe('人格の保存', () => {
     });
 
     it('受診メモだけ、またはコメントだけがある人格も削除されない', async () => {
-      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
-      const b = await addAlter(database, { name: 'B', color: '#222222' }, now);
+      const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
+      const b = await addAlter(database, { name: 'B', color: '#222222', categoryId: null }, now);
       await database.clinicNotes.add({
         id: 'n1',
         alterId: a.id,
@@ -129,9 +195,9 @@ describe('人格の保存', () => {
     });
 
     it('バケットのリストの項目がある人格・協力者に入っている人格は削除されない(削除済みの項目も数える)', async () => {
-      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
-      const b = await addAlter(database, { name: 'B', color: '#222222' }, now);
-      const c = await addAlter(database, { name: 'C', color: '#333333' }, now);
+      const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
+      const b = await addAlter(database, { name: 'B', color: '#222222', categoryId: null }, now);
+      const c = await addAlter(database, { name: 'C', color: '#333333', categoryId: null }, now);
       // A のリストの削除済みの項目で、B が協力者。C はどこにも出てこない
       await database.bucketItems.add({
         id: 'b1',
@@ -155,7 +221,7 @@ describe('人格の保存', () => {
     });
 
     it('服薬記録だけがある人格も削除されない', async () => {
-      const a = await addAlter(database, { name: 'A', color: '#111111' }, now);
+      const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
       await database.medicationIntakes.add({
         id: 'i1',
         medicationId: 'med-1',

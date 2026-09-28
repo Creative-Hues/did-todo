@@ -1,6 +1,6 @@
 // 人格の保存・更新・削除(削除は完了記録がない人格だけ。SPEC.md 3.1)
 import type { AppDatabase } from './db';
-import { EMPTY_ALTER_PROFILE } from './initialData';
+import { buildDefaultProfileSections, EMPTY_ALTER_PROFILE } from './initialData';
 import { nextOrder, reorderSubset } from '../lib/ordering';
 import type { Alter } from '../lib/types';
 
@@ -8,11 +8,16 @@ import type { Alter } from '../lib/types';
 export interface AlterInput {
   name: string;
   color: string;
+  /** 区分のID。選ばないときは null(「未分類」) */
+  categoryId: string | null;
 }
 
-/** 人格を一覧の最後に追加し、追加した人格を返す */
+/** 基本情報のうち、基本情報の編集画面で直す項目(区分は人格の編集画面で選ぶ。SPEC.md 10.3) */
+export type AlterBasicInfoInput = Pick<Alter, 'reading' | 'age' | 'gender' | 'identify'>;
+
+/** 人格を一覧の最後に追加し、基本の見出しも入れて、追加した人格を返す(SPEC.md 10.4) */
 export async function addAlter(database: AppDatabase, input: AlterInput, now: Date): Promise<Alter> {
-  return database.transaction('rw', database.alters, async () => {
+  return database.transaction('rw', [database.alters, database.profileSections], async () => {
     const all = await database.alters.toArray();
     const alter: Alter = {
       id: crypto.randomUUID(),
@@ -22,15 +27,31 @@ export async function addAlter(database: AppDatabase, input: AlterInput, now: Da
       order: nextOrder(all),
       createdAt: now.toISOString(),
       ...EMPTY_ALTER_PROFILE,
+      categoryId: input.categoryId,
     };
     await database.alters.add(alter);
+    await database.profileSections.bulkAdd(buildDefaultProfileSections(alter.id, now, () => crypto.randomUUID()));
     return alter;
   });
 }
 
-/** 名前と色を変更する */
+/** 名前・色・区分を変更する */
 export async function updateAlter(database: AppDatabase, id: string, input: AlterInput): Promise<void> {
-  await database.alters.update(id, { name: input.name, color: input.color });
+  await database.alters.update(id, { name: input.name, color: input.color, categoryId: input.categoryId });
+}
+
+/** 基本情報(読み・体感年齢・性別(感)・見分け方)を変更する */
+export async function updateAlterBasicInfo(
+  database: AppDatabase,
+  id: string,
+  input: AlterBasicInfoInput,
+): Promise<void> {
+  await database.alters.update(id, {
+    reading: input.reading,
+    age: input.age,
+    gender: input.gender,
+    identify: input.identify,
+  });
 }
 
 /** 非表示/再表示を切り替える */
@@ -67,8 +88,17 @@ export async function countAlterRecords(database: AppDatabase, id: string): Prom
   return counts.reduce((sum, count) => sum + count, 0);
 }
 
+/** その人格の見出しのうち、中身が空でないものの件数(削除の確認文に使う。SPEC.md 3.1) */
+export async function countFilledProfileSections(database: AppDatabase, id: string): Promise<number> {
+  return database.profileSections
+    .where('alterId')
+    .equals(id)
+    .filter((section) => section.body.trim() !== '')
+    .count();
+}
+
 /**
- * 人格を削除し、すべてのタスクの「気にしている人格」からも外す。
+ * 人格を削除し、すべてのタスクの「気にしている人格」からも外す。その人格の見出しも消す。
  * 完了記録・服薬記録・受診メモ・コメント・バケットのどれかが1件でもある人格は削除せず false を返す
  * (削除したら true。SPEC.md 3.1)
  */
@@ -81,12 +111,14 @@ export async function deleteAlter(database: AppDatabase, id: string): Promise<bo
     database.clinicNotes,
     database.clinicNoteComments,
     database.bucketItems,
+    database.profileSections,
   ];
   return database.transaction('rw', tables, async () => {
     if ((await countAlterRecords(database, id)) > 0) {
       return false;
     }
     await database.alters.delete(id);
+    await database.profileSections.where('alterId').equals(id).delete();
     const tasks = await database.tasks.filter((task) => task.careAlterIds.includes(id)).toArray();
     for (const task of tasks) {
       await database.tasks.update(task.id, {

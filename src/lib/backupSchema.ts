@@ -262,6 +262,8 @@ function parseTable<K extends keyof BackupData>(name: K, rows: unknown): BackupD
  * ほかのデータを指す項目が、ファイルの中にあるデータを指しているか確かめる(SPEC.md 12章)。
  * - 薬と服薬記録の時間帯が、時間帯の一覧にあるか
  * - コメントのメモが、受診メモにあるか
+ * - プロフィールの見出しの人格が、人格にあるか(「全体のこと」の見出しは人格を指さない)
+ * 人格の区分は確かめない(ない区分を指す人格は「未分類」に出す。SPEC.md 12章)
  * だめなときは理由の文字列を返す
  */
 function checkReferences(data: BackupData): string | null {
@@ -278,6 +280,11 @@ function checkReferences(data: BackupData): string | null {
   const commentIndex = data.clinicNoteComments.findIndex((c) => !noteIds.has(c.noteId));
   if (commentIndex >= 0) {
     return `「受診メモのコメント」の${commentIndex + 1}件目のメモが見つかりません`;
+  }
+  const alterIds = new Set(data.alters.map((alter) => alter.id));
+  const sectionIndex = data.profileSections.findIndex((s) => s.alterId !== null && !alterIds.has(s.alterId));
+  if (sectionIndex >= 0) {
+    return `「プロフィール」の${sectionIndex + 1}件目の人格が見つかりません`;
   }
   return null;
 }
