@@ -13,6 +13,7 @@ import {
   serializeBackup,
   type BackupFile,
 } from '../lib/backup';
+import { browserSaveDeps, saveFile } from '../lib/saveFile';
 import { formatDateTime } from '../lib/timeFormat';
 
 interface Props {
@@ -21,22 +22,6 @@ interface Props {
 
 /** 画面の下に出すお知らせ(成功・失敗) */
 type Notice = { kind: 'success' | 'error'; text: string } | null;
-
-/** 共有シートでファイルを渡せるか */
-function canShareFile(file: File): boolean {
-  return typeof navigator.canShare === 'function' && navigator.canShare({ files: [file] });
-}
-
-/** ダウンロードとして保存する(共有シートが使えない環境用) */
-function downloadFile(file: File): void {
-  const url = URL.createObjectURL(file);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = file.name;
-  link.click();
-  // ダウンロードが始まるまで少し待ってから片付ける
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 export function BackupScreen({ onBack }: Props) {
   const now = useNow();
@@ -58,18 +43,14 @@ export function BackupScreen({ onBack }: Props) {
       type: 'application/json',
     });
     try {
-      if (canShareFile(file)) {
-        await navigator.share({ files: [file] });
-      } else {
-        downloadFile(file);
+      // 共有シートを閉じた(キャンセルした)ときは、何もしない
+      if ((await saveFile(file, browserSaveDeps())) === 'cancelled') {
+        return;
       }
+      // 保存できたときだけ、最後に書き出した日時を記録する
       await setLastExportedAt(db, exportedAt);
       setNotice({ kind: 'success', text: 'バックアップを書き出しました' });
     } catch (error) {
-      // 共有シートを閉じた(キャンセルした)ときは、何もしない
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        return;
-      }
       console.error('バックアップの書き出しに失敗しました', error);
       setNotice({ kind: 'error', text: '書き出しに失敗しました。もう一度お試しください。' });
     }
