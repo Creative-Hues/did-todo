@@ -1,5 +1,5 @@
-// 設定の一覧の1行の中身(人格・タスク共通)。タップすると編集画面を開く
-// selected を渡すと、チェックボックス付きの「選択」の行になる(タップで選択を切り替える)
+// 設定の一覧の1行の中身(人格・タスク・薬で共通)。タップすると編集画面を開く。右端に「編集」ボタン
+// selected を渡すと、チェックボックス付きの「選択」の行になる(タップで選択を切り替える。「編集」ボタンは出さない)
 import type { ReactNode } from 'react';
 
 interface Props {
@@ -36,9 +36,16 @@ export function ItemRow({ name, hidden, leading, sub, selected, onOpen }: Props)
       </label>
     );
   }
+  // 行のどこをタップしても編集画面が開く。はじめて見た人にもわかるよう、右端に「編集」ボタンも置く
+  // (ボタンの中にボタンは入れられないので、行と「編集」を横に並べる)
   return (
-    <button type="button" className={className} onClick={onOpen}>
-      {content}
-    </button>
+    <div className="item-row-wrap">
+      <button type="button" className={className} onClick={onOpen}>
+        {content}
+      </button>
+      <button type="button" className="edit-button" onClick={onOpen} aria-label={`「${name}」を編集`}>
+        編集
+      </button>
+    </div>
   );
 }

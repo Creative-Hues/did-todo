@@ -4,7 +4,7 @@
 import { useState, type FormEvent } from 'react';
 import type { MedicationInput } from '../../db/medicationRepo';
 import { TIMING_LABELS, TIMINGS, formatTablets } from '../../lib/medication';
-import { normalizeName, parseDosePerTake, parseStockCount } from '../../lib/validation';
+import { validateMedicationForm } from '../../lib/medicationForm';
 import type { Medication, MedicationTiming } from '../../lib/types';
 
 interface Props {
@@ -30,31 +30,29 @@ export function MedicationForm({ initial, onSubmit, onCancel }: Props) {
     setTimings((current) => (current.includes(timing) ? current.filter((t) => t !== timing) : [...current, timing]));
   };
 
+  // 飲み方を切り替えたら、前に出たエラーは消す
+  // (「決まった時間」で出た時間帯のエラーが、頓服に切り替えたあとも残らないように)
+  // 選んでいた時間帯は残しておき、「決まった時間」に戻したときにそのまま出す
+  const changeKind = (next: Medication['kind']) => {
+    setKind(next);
+    setError(null);
+  };
+
   const handleSubmit = (event: FormEvent) => {
     event.preventDefault();
-    const normalized = normalizeName(name);
-    if (normalized === null) {
-      setError('薬の名前を入力してください');
+    const result = validateMedicationForm({
+      name,
+      kind,
+      timings,
+      doseText,
+      remainingText: initial ? null : remainingText,
+    });
+    if (!result.ok) {
+      setError(result.error);
       return;
     }
-    if (kind === 'scheduled' && timings.length === 0) {
-      setError('時間帯を1つ以上選んでください');
-      return;
-    }
-    const dosePerTake = parseDosePerTake(doseText);
-    if (dosePerTake === null) {
-      setError('1回の錠数は0.5錠単位で、0.5以上の数を入力してください');
-      return;
-    }
-    let remaining: number | null = null;
-    if (!initial) {
-      remaining = parseStockCount(remainingText);
-      if (remaining === null) {
-        setError('残りの錠数は0.5錠単位で、0以上の数を入力してください');
-        return;
-      }
-    }
-    void onSubmit({ name: normalized, kind, timings, dosePerTake }, remaining);
+    setError(null);
+    void onSubmit(result.input, result.remaining);
   };
 
   return (
@@ -72,11 +70,11 @@ export function MedicationForm({ initial, onSubmit, onCancel }: Props) {
       <fieldset className="field">
         <legend>飲み方</legend>
         <label className="choice">
-          <input type="radio" name="kind" checked={kind === 'scheduled'} onChange={() => setKind('scheduled')} />
+          <input type="radio" name="kind" checked={kind === 'scheduled'} onChange={() => changeKind('scheduled')} />
           決まった時間
         </label>
         <label className="choice">
-          <input type="radio" name="kind" checked={kind === 'asNeeded'} onChange={() => setKind('asNeeded')} />
+          <input type="radio" name="kind" checked={kind === 'asNeeded'} onChange={() => changeKind('asNeeded')} />
           頓服
         </label>
       </fieldset>

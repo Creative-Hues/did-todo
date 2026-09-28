@@ -128,6 +128,20 @@ input[type='color'] {
   opacity: 0.6;
 }
 
+/* 行(タップで編集)と、右端の「編集」ボタンを横に並べる。名前が長くても「編集」は押し出されない */
+.item-row-wrap {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+}
+
+.edit-button {
+  flex: 0 0 auto;
+  margin: 0 4px 0 8px;
+  font-size: 0.875rem;
+}
+
 .item-row__main {
   display: flex;
   align-items: center;
