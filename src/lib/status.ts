@@ -15,7 +15,7 @@ export interface TaskStatusResult {
 type PeriodKeyFn = (date: Date) => string;
 
 /** completedAt が最も新しい記録を返す */
-function findLatest(records: readonly CompletionRecord[]): CompletionRecord | null {
+export function findLatest(records: readonly CompletionRecord[]): CompletionRecord | null {
   let latest: CompletionRecord | null = null;
   for (const record of records) {
     if (latest === null || record.completedAt > latest.completedAt) {

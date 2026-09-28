@@ -68,3 +68,26 @@ export function toLogicalWeek(date: Date): LogicalDate {
 export function toLogicalMonth(date: Date): string {
   return toLogicalDate(date).slice(0, 7);
 }
+
+/** 論理日に日数を足す(マイナスなら前の日) */
+export function addLogicalDays(logicalDate: LogicalDate, days: number): LogicalDate {
+  const utc = new Date((toDayNumber(logicalDate) + days) * 86_400_000);
+  return formatDate(utc.getUTCFullYear(), utc.getUTCMonth() + 1, utc.getUTCDate());
+}
+
+/** 'YYYY-MM' の前の月 */
+export function previousLogicalMonth(logicalMonth: string): string {
+  const [year, month] = logicalMonth.split('-').map(Number);
+  return month === 1 ? `${year - 1}-12` : `${year}-${pad2(month - 1)}`;
+}
+
+/** 論理日が始まる日時(その日の朝5時。端末のローカル時刻) */
+export function startOfLogicalDate(logicalDate: LogicalDate): Date {
+  const { year, month, day } = parseLogicalDate(logicalDate);
+  return new Date(year, month - 1, day, DAY_START_HOUR);
+}
+
+/** 論理月('YYYY-MM')が始まる日時(1日の朝5時) */
+export function startOfLogicalMonth(logicalMonth: string): Date {
+  return startOfLogicalDate(`${logicalMonth}-01`);
+}

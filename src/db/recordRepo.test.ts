@@ -35,8 +35,22 @@ describe('完了記録の追加・取り消し', () => {
     const now = at(9, 25, 9, 12);
     const saved = await addRecord(database, daily, 'alter-1', now);
     expect(await database.records.toArray()).toEqual([
-      { id: saved?.id, taskId: 'daily', alterId: 'alter-1', completedAt: now.toISOString() },
+      {
+        id: saved?.id,
+        taskId: 'daily',
+        alterId: 'alter-1',
+        completedAt: now.toISOString(),
+        careAlterIdsAtCompletion: [],
+      },
     ]);
+  });
+
+  it('記録した瞬間の「気にしている人格」が写され、あとでタスクを変えても変わらない', async () => {
+    const task: Task = { ...daily, careAlterIds: ['alter-a', 'alter-b'] };
+    const saved = await addRecord(database, task, 'alter-c', at(9, 25));
+    // タスクの気にしている人格をあとから変える(写しとは別の配列なので影響しない)
+    task.careAlterIds.push('alter-d');
+    expect((await database.records.get(saved?.id ?? ''))?.careAlterIdsAtCompletion).toEqual(['alter-a', 'alter-b']);
   });
 
   it('「わからない」は alterId が null で記録される', async () => {

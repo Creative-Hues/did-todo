@@ -9,6 +9,23 @@ function formatClock(date: Date): string {
   return `${date.getHours()}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
+/** 「9:12」形式(実際の時刻) */
+export function formatClockOf(iso: string): string {
+  return formatClock(new Date(iso));
+}
+
+/** 「水 9:12」形式(実際の曜日と時刻) */
+export function formatWeekdayClock(iso: string): string {
+  const date = new Date(iso);
+  return `${WEEKDAYS[date.getDay()]} ${formatClock(date)}`;
+}
+
+/** 「9/3」形式(実際の月日) */
+export function formatMonthDay(iso: string): string {
+  const date = new Date(iso);
+  return `${date.getMonth() + 1}/${date.getDate()}`;
+}
+
 /** 「2026/9/28 21:30」形式(実際の日時) */
 export function formatDateTime(iso: string): string {
   const date = new Date(iso);
@@ -23,14 +40,12 @@ export function formatDateTime(iso: string): string {
  * @param completedAt 完了日時(ISO形式)
  */
 export function formatCompletionTime(completedAt: string, section: SectionKey): string {
-  const date = new Date(completedAt);
-  const clock = formatClock(date);
   switch (section) {
     case 'today':
-      return clock;
+      return formatClockOf(completedAt);
     case 'week':
-      return `${WEEKDAYS[date.getDay()]} ${clock}`;
+      return formatWeekdayClock(completedAt);
     case 'month':
-      return `${date.getMonth() + 1}/${date.getDate()} ${clock}`;
+      return `${formatMonthDay(completedAt)} ${formatClockOf(completedAt)}`;
   }
 }

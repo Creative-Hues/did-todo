@@ -24,6 +24,8 @@ export async function addRecord(
       taskId: task.id,
       alterId,
       completedAt: now.toISOString(),
+      // 記録した瞬間の「気にしている人格」を写す(集計の代行の判断に使う。SPEC.md 3.3・6.7)
+      careAlterIdsAtCompletion: [...task.careAlterIds],
     };
     await database.records.add(record);
     return record;
