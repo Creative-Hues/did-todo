@@ -959,6 +959,60 @@ textarea {
 
 /* ---- フェーズ12:人格情報 ---- */
 
+/* 一覧の上の「早見表」「全員分をPDFに」を横に並べる */
+.alter-info-actions {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.alter-info-actions button {
+  flex: 1;
+}
+
+/* 早見表(SPEC.md 10.6)。画面の横幅に入らないときは、表だけを横にスクロールする */
+.quick-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.quick-table {
+  border-collapse: collapse;
+  min-width: 100%;
+  font-size: 0.9375rem;
+}
+
+.quick-table th,
+.quick-table td {
+  padding: 8px;
+  border: 1px solid #ccc;
+  text-align: left;
+  vertical-align: top;
+}
+
+.quick-table thead th {
+  font-size: 0.8125rem;
+  color: #888;
+  white-space: nowrap;
+}
+
+.quick-table__name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.quick-table__name .color-dot {
+  width: 14px;
+  height: 14px;
+}
+
+.quick-table__identify {
+  min-width: 10em;
+  white-space: pre-wrap; /* 改行をそのまま出す */
+}
+
 /* 「全体のこと」への入口。名前を左、› を右に置く */
 .common-entry {
   display: flex;
@@ -1123,6 +1177,123 @@ textarea {
 
 .profile-add {
   margin-top: 8px;
+}
+
+/* ---- フェーズ12:印刷(PDF。SPEC.md 10.7) ---- */
+
+/* 印刷用の中身は、画面には出さない */
+.print-doc {
+  display: none;
+}
+
+@media print {
+  /* 印刷用の中身があるときは、アプリ本体(タブバーも含む)を隠し、印刷用の中身だけを出す */
+  body:has(> .print-doc) > #root {
+    display: none;
+  }
+
+  body:has(> .print-doc) {
+    padding-bottom: 0; /* タブバーのための余白をとらない */
+    background: #fff;
+  }
+
+  /* ダークモードでも、白い背景に黒い文字にする */
+  .print-doc {
+    display: block;
+    color: #000;
+    background: #fff;
+    color-scheme: light;
+    font-size: 11pt;
+    line-height: 1.6;
+  }
+
+  .print-doc__header {
+    margin-bottom: 16pt;
+  }
+
+  .print-doc h1 {
+    font-size: 18pt;
+  }
+
+  .print-doc__header p {
+    margin: 4pt 0 0;
+  }
+
+  .print-part {
+    margin-bottom: 16pt;
+  }
+
+  /* 全員分では、人格ごとのページを新しいページから始める */
+  .print-part--new-page {
+    break-before: page;
+  }
+
+  .print-part h2 {
+    margin: 0 0 8pt;
+    padding-bottom: 4pt;
+    border-bottom: 1pt solid #000;
+    font-size: 14pt;
+  }
+
+  .print-basic-info {
+    margin: 0 0 12pt;
+  }
+
+  .print-basic-info__row {
+    display: flex;
+    gap: 12pt;
+    break-inside: avoid;
+  }
+
+  .print-basic-info__row dt {
+    flex: 0 0 6em;
+    font-weight: bold;
+  }
+
+  .print-basic-info__row dd {
+    margin: 0;
+    white-space: pre-wrap;
+  }
+
+  /* 見出しの途中でページが切れにくくする */
+  .print-section {
+    break-inside: avoid;
+    margin-bottom: 10pt;
+  }
+
+  .print-section h3 {
+    margin: 0 0 2pt;
+    font-size: 12pt;
+  }
+
+  .print-section p {
+    margin: 0;
+    white-space: pre-wrap; /* 改行をそのまま出す */
+  }
+
+  .print-doc .quick-table {
+    width: 100%;
+    font-size: 10pt;
+  }
+
+  .print-doc .quick-table th,
+  .print-doc .quick-table td {
+    border-color: #000;
+  }
+
+  .print-doc .quick-table thead th {
+    color: #000;
+  }
+
+  .print-doc .quick-table tr {
+    break-inside: avoid;
+  }
+
+  /* 人格の色の丸は、印刷でも色を残す */
+  .print-doc .color-dot {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
 }
 
 /* 区分の名前の見出し */

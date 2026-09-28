@@ -1,14 +1,22 @@
 // 人格情報タブ(SPEC.md 10.1):「全体のこと」の入口、区分ごとの人格の一覧、区分の設定、バックアップの入口
+// 一覧の上に「早見表」「全員分をPDFに」(10.6・10.7)
 // 人格の行をタップすると人格ごとのページ(10.3)が開き、そこから各編集画面を開く
-// 早見表・PDF は、フェーズ12の段階Dで足す
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AlterList } from '../components/settings/AlterList';
 import { db } from '../db/db';
 import { getLastExportedAt } from '../db/backupRepo';
 import { useListScroll } from '../hooks/useListScroll';
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { useNow } from '../hooks/useNow';
-import { sectionsOf } from '../lib/alterInfo';
+import { usePrint } from '../hooks/usePrint';
+import {
+  buildAllPrint,
+  buildAlterPrint,
+  buildQuickTablePrint,
+  buildQuickTableRows,
+  sectionsOf,
+  type PrintContent,
+} from '../lib/alterInfo';
 import { backupReminderText } from '../lib/backup';
 import { AlterBasicInfoEditScreen } from './AlterBasicInfoEditScreen';
 import { AlterCategorySettingsScreen } from './AlterCategorySettingsScreen';
@@ -17,6 +25,7 @@ import { AlterPageScreen } from './AlterPageScreen';
 import { BackupScreen } from './BackupScreen';
 import { CommonInfoScreen } from './CommonInfoScreen';
 import { ProfileSectionEditScreen } from './ProfileSectionEditScreen';
+import { QuickTableScreen } from './QuickTableScreen';
 
 /**
  * 表示中の画面
@@ -37,9 +46,26 @@ type View =
   | { kind: 'common' }
   | { kind: 'section'; ownerId: string | null; sectionId: string | null }
   | { kind: 'categories' }
+  | { kind: 'quickTable' }
   | { kind: 'backup' };
 
 export function AlterInfoScreen() {
+  const { print, printView, clearPrint } = usePrint();
+  return (
+    <>
+      <AlterInfoContent print={print} clearPrint={clearPrint} />
+      {/* 印刷用の中身(画面には見えない。印刷のときだけ出る) */}
+      {printView}
+    </>
+  );
+}
+
+interface ContentProps {
+  print: (content: PrintContent) => void;
+  clearPrint: () => void;
+}
+
+function AlterInfoContent({ print, clearPrint }: ContentProps) {
   const alters = useLiveQuery(() => db.alters.toArray());
   const categories = useLiveQuery(() => db.categories.toArray());
   const sections = useLiveQuery(() => db.profileSections.toArray());
@@ -63,6 +89,11 @@ export function AlterInfoScreen() {
       pageScrollY.current = null;
     }
     // viewKey は view の中身が変わったときだけ変わる
+  }, [viewKey]);
+
+  // 別の画面に移ったら、前に印刷した中身を片付ける
+  useEffect(() => {
+    clearPrint();
   }, [viewKey]);
 
   /** 一覧から別の画面を開く */
@@ -96,6 +127,14 @@ export function AlterInfoScreen() {
       return <BackupScreen onBack={backToList} />;
     case 'categories':
       return <AlterCategorySettingsScreen onBack={backToList} />;
+    case 'quickTable':
+      return (
+        <QuickTableScreen
+          rows={buildQuickTableRows(alters, categories)}
+          onBack={backToList}
+          onPrint={() => print(buildQuickTablePrint(alters, categories, new Date()))}
+        />
+      );
     case 'common':
       return (
         <CommonInfoScreen
@@ -117,6 +156,7 @@ export function AlterInfoScreen() {
           categories={categories}
           sections={sectionsOf(sections, alter.id)}
           onBack={backToList}
+          onPrint={() => print(buildAlterPrint(alter, categories, sections, new Date()))}
           onEditAlter={() => openFromPage({ kind: 'alterEdit', id: alter.id })}
           onEditBasicInfo={() => openFromPage({ kind: 'basicInfo', id: alter.id })}
           onOpenSection={(section) => openFromPage({ kind: 'section', ownerId: alter.id, sectionId: section.id })}
@@ -177,6 +217,14 @@ export function AlterInfoScreen() {
       <header className="screen-header">
         <h1>人格情報</h1>
       </header>
+      <div className="alter-info-actions">
+        <button type="button" onClick={() => open({ kind: 'quickTable' })}>
+          早見表
+        </button>
+        <button type="button" onClick={() => print(buildAllPrint(alters, categories, sections, new Date()))}>
+          全員分をPDFに
+        </button>
+      </div>
       {/* 特定の人格ではない情報のページへの入口(SPEC.md 10.1・10.5) */}
       <button type="button" className="add-button common-entry" onClick={() => open({ kind: 'common' })}>
         <span>全体のこと</span>

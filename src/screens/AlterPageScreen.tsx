@@ -11,6 +11,8 @@ interface Props {
   /** この人格の見出し(並び順どおり) */
   sections: ProfileSection[];
   onBack: () => void;
+  /** 「この人のページをPDFに」(SPEC.md 10.7) */
+  onPrint: () => void;
   /** 名前・色・区分のカードをタップしたとき */
   onEditAlter: () => void;
   /** 基本情報のカードをタップしたとき */
@@ -24,6 +26,7 @@ export function AlterPageScreen({
   categories,
   sections,
   onBack,
+  onPrint,
   onEditAlter,
   onEditBasicInfo,
   onOpenSection,
@@ -46,8 +49,7 @@ export function AlterPageScreen({
         </span>
       </button>
 
-      {/* 印刷(PDF)は段階Dで使えるようにする */}
-      <button type="button" className="add-button" disabled>
+      <button type="button" className="add-button" onClick={onPrint}>
         この人のページをPDFに
       </button>
 
