@@ -26,9 +26,9 @@ export function QuickTable({ rows }: Props) {
                 {row.name}
               </span>
             </th>
-            <td>{row.category}</td>
-            <td>{row.age}</td>
-            <td>{row.gender}</td>
+            <td className="quick-table__category">{row.category}</td>
+            <td className="quick-table__age">{row.age}</td>
+            <td className="quick-table__gender">{row.gender}</td>
             {/* 見分け方の改行はそのまま出す */}
             <td className="quick-table__identify">{row.identify}</td>
           </tr>

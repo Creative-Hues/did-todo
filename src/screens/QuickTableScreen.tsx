@@ -1,15 +1,18 @@
 // 早見表の画面(SPEC.md 10.6)。まず画面に一覧表を出す(交代した人格が、見分け方などをさっと確かめられるように)
 // 「PDFに」で、早見表だけを印刷する
+import { PrintOverflowNotice } from '../components/print/PrintOverflowNotice';
 import { QuickTable } from '../components/profile/QuickTable';
-import type { QuickTableRow } from '../lib/alterInfo';
+import type { PrintContent, QuickTableRow } from '../lib/alterInfo';
 
 interface Props {
   rows: QuickTableRow[];
   onBack: () => void;
   onPrint: () => void;
+  /** 印刷したときの早見表(1ページに収まるかを測るため) */
+  printPreview: PrintContent;
 }
 
-export function QuickTableScreen({ rows, onBack, onPrint }: Props) {
+export function QuickTableScreen({ rows, onBack, onPrint, printPreview }: Props) {
   return (
     <main className="app">
       <header className="screen-header">
@@ -21,6 +24,7 @@ export function QuickTableScreen({ rows, onBack, onPrint }: Props) {
           PDFに
         </button>
       </header>
+      {rows.length > 0 && <PrintOverflowNotice content={printPreview} part="quickTable" label="早見表" />}
       {rows.length === 0 ? (
         <p className="empty">人格がまだ登録されていません</p>
       ) : (

@@ -140,6 +140,7 @@ function AlterInfoContent({ print, clearPrint }: ContentProps) {
           rows={buildQuickTableRows(alters, categories)}
           onBack={backToList}
           onPrint={() => print(buildQuickTablePrint(alters, categories, new Date()))}
+          printPreview={buildQuickTablePrint(alters, categories, new Date())}
         />
       );
     case 'common':
@@ -149,6 +150,8 @@ function AlterInfoContent({ print, clearPrint }: ContentProps) {
           onBack={backToList}
           onOpenSection={(section) => openFromPage({ kind: 'section', ownerId: null, sectionId: section.id })}
           onAddSection={() => openFromPage({ kind: 'section', ownerId: null, sectionId: null })}
+          // 全員分の PDF の1ページ目(表題・作成日と全体のこと)だけを測る
+          printPreview={{ ...buildAllPrint(alters, categories, sections, new Date()), quickTable: null, alterPages: [] }}
         />
       );
     case 'page': {
