@@ -1803,3 +1803,11 @@ body {
   color: #fff;
 }
 
+
+/* 呼び方が長いとき(最大10文字+「情報」)も、タブの文字がはみ出さないようにする(SPEC.md 14章③) */
+.tab-bar__label {
+  max-width: 100%;
+  padding: 0 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
