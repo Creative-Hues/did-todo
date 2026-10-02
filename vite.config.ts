@@ -32,8 +32,9 @@ export default defineConfig({
     react(),
     versionFilePlugin(),
     VitePWA({
-      // 新しい版を公開したら、自動で更新する
-      registerType: 'autoUpdate',
+      // 新しい版を公開しても自動では切り替えず、利用者が「更新する」を押したら切り替える(SPEC.md 18.2)
+      // 登録は src/hooks/useUpdateNotice.ts で行う
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'icon.svg', 'apple-touch-icon-180x180.png'],
       manifest: {
         name: 'ひとつやね',

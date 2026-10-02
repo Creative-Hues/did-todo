@@ -4,7 +4,9 @@
 // タブバーのすぐ上に、どのタブからでも押せる「変わったことに気づいた」ボタンを置く(SPEC.md 17.1)
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { TabBar, type TabKey } from './components/common/TabBar';
+import { UpdateNoticeBar } from './components/common/UpdateNoticeBar';
 import { SwitchRecordSheet } from './components/switch/SwitchRecordSheet';
+import { useUpdateNotice } from './hooks/useUpdateNotice';
 import { AlterInfoScreen } from './screens/AlterInfoScreen';
 import { BucketScreen } from './screens/BucketScreen';
 import { ClinicNoteScreen } from './screens/ClinicNoteScreen';
@@ -32,6 +34,10 @@ function App() {
   // 交代の記録のシート:開いているときは、気づいた時刻(ボタンを押した時刻)。閉じているときは null
   const [switchNoticedAt, setSwitchNoticedAt] = useState<Date | null>(null);
   const [showRecorded, setShowRecorded] = useState(false);
+  // 更新のお知らせ(SPEC.md 18章)
+  const updateNotice = useUpdateNotice();
+  // 「バックアップを書き出す」を押した回数(押すたびに、人格情報タブでバックアップ画面を開く)
+  const [backupRequest, setBackupRequest] = useState(0);
 
   // 「記録しました」は少したったら消す
   useEffect(() => {
@@ -75,11 +81,22 @@ function App() {
     }[medicationView],
     clinic: <ClinicNoteScreen />,
     bucket: <BucketScreen />,
-    alters: <AlterInfoScreen />,
+    alters: <AlterInfoScreen backupRequest={backupRequest} />,
   };
 
   return (
     <>
+      {updateNotice.visible && (
+        <UpdateNoticeBar
+          kind={updateNotice.kind}
+          onOpenBackup={() => {
+            handleSelectTab('alters');
+            setBackupRequest((count) => count + 1);
+          }}
+          onUpdate={updateNotice.update}
+          onDismiss={updateNotice.dismiss}
+        />
+      )}
       {(Object.keys(panels) as TabKey[]).map((key) => (
         <div key={key} hidden={key !== tab}>
           {panels[key]}

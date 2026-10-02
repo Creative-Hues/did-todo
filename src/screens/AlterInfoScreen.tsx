@@ -54,11 +54,19 @@ type View =
   | { kind: 'switchLog' }
   | { kind: 'backup' };
 
-export function AlterInfoScreen() {
+interface Props {
+  /**
+   * 更新のお知らせの「バックアップを書き出す」を押した回数(SPEC.md 18.2)。
+   * 増えるたびに、バックアップ画面を開く(0 のときは何もしない)
+   */
+  backupRequest?: number;
+}
+
+export function AlterInfoScreen({ backupRequest = 0 }: Props) {
   const { print, printView, clearPrint } = usePrint();
   return (
     <>
-      <AlterInfoContent print={print} clearPrint={clearPrint} />
+      <AlterInfoContent print={print} clearPrint={clearPrint} backupRequest={backupRequest} />
       {/* 印刷用の中身(画面には見えない。印刷のときだけ出る) */}
       {printView}
     </>
@@ -68,9 +76,10 @@ export function AlterInfoScreen() {
 interface ContentProps {
   print: (content: PrintContent) => void;
   clearPrint: () => void;
+  backupRequest: number;
 }
 
-function AlterInfoContent({ print, clearPrint }: ContentProps) {
+function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
   const alters = useLiveQuery(() => db.alters.toArray());
   const categories = useLiveQuery(() => db.categories.toArray());
   const sections = useLiveQuery(() => db.profileSections.toArray());
@@ -99,6 +108,14 @@ function AlterInfoContent({ print, clearPrint }: ContentProps) {
     }
     // viewKey は view の中身が変わったときだけ変わる
   }, [viewKey]);
+
+  // 更新のお知らせの「バックアップを書き出す」を押したら、バックアップ画面を開く
+  useEffect(() => {
+    if (backupRequest > 0) {
+      pageScrollY.current = null;
+      setView({ kind: 'backup' });
+    }
+  }, [backupRequest]);
 
   // 別の画面に移ったら、前に印刷した中身を片付ける
   useEffect(() => {
