@@ -1753,3 +1753,23 @@ body {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
+
+/* ---- フェーズ14:医療のアプリではないこと・このアプリについて(SPEC.md 14章④⑥) ---- */
+
+.medical-notice {
+  margin-top: 24px;
+}
+
+.about p {
+  margin: 0 0 8px;
+}
+
+.about-list {
+  margin: 0;
+  padding-left: 1.2em;
+  line-height: 1.6;
+}
+
+.about-list li + li {
+  margin-top: 6px;
+}

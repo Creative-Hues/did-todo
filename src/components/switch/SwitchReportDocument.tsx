@@ -12,6 +12,7 @@ import {
   type SwitchStatsRow,
 } from '../../lib/switchLog';
 import type { Alter, SwitchLog, SwitchTag } from '../../lib/types';
+import { SWITCH_LOG_NOTICE } from '../../lib/about';
 import { UNKNOWN_SEGMENT_COLOR } from './SwitchStatsView';
 import { useTerm } from '../../hooks/useTerm';
 
@@ -37,6 +38,7 @@ export function SwitchReportDocument({ month, stats, logs, alters, tags, created
         <h1>交代の記録 {statsMonthLabel(month)}</h1>
         <p>作成日:{formatCalendarDateSlash(createdAt)}</p>
         <p>{SWITCH_REPORT_NOTE}</p>
+        <p>{SWITCH_LOG_NOTICE}</p>
       </header>
 
       <section className="print-part">

@@ -25,6 +25,7 @@ import { AlterBasicInfoEditScreen } from './AlterBasicInfoEditScreen';
 import { AlterCategorySettingsScreen } from './AlterCategorySettingsScreen';
 import { AlterEditScreen } from './AlterEditScreen';
 import { AlterPageScreen } from './AlterPageScreen';
+import { AboutScreen } from './AboutScreen';
 import { BackupScreen } from './BackupScreen';
 import { CommonInfoScreen } from './CommonInfoScreen';
 import { ProfileSectionEditScreen } from './ProfileSectionEditScreen';
@@ -43,6 +44,7 @@ import { useTerm } from '../hooks/useTerm';
  * - categories:区分の設定
  * - switchLog:交代の記録(SPEC.md 17.4)
  * - backup:バックアップ
+ * - about:このアプリについて(SPEC.md 14章⑥)
  */
 type View =
   | { kind: 'list' }
@@ -54,7 +56,8 @@ type View =
   | { kind: 'categories' }
   | { kind: 'quickTable' }
   | { kind: 'switchLog' }
-  | { kind: 'backup' };
+  | { kind: 'backup' }
+  | { kind: 'about' };
 
 interface Props {
   /**
@@ -155,6 +158,8 @@ function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
   switch (view.kind) {
     case 'backup':
       return <BackupScreen onBack={backToList} />;
+    case 'about':
+      return <AboutScreen onBack={backToList} />;
     case 'categories':
       return <AlterCategorySettingsScreen onBack={backToList} />;
     case 'switchLog':
@@ -311,6 +316,12 @@ function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
         {reminder && <p className="backup-reminder">{reminder}</p>}
         <button type="button" className="add-button" onClick={() => open({ kind: 'backup' })}>
           バックアップを開く
+        </button>
+      </section>
+      <section className="settings-section">
+        <h2>このアプリについて</h2>
+        <button type="button" className="add-button" onClick={() => open({ kind: 'about' })}>
+          このアプリについて
         </button>
       </section>
     </main>

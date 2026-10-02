@@ -22,6 +22,7 @@ import { sortForSettings } from '../lib/ordering';
 import { toLogicalDate } from '../lib/period';
 import { showSaveError } from '../lib/showError';
 import type { Medication, MedicationTiming, MedicationTimingId } from '../lib/types';
+import { MEDICAL_NOTICE } from '../lib/about';
 
 /** 開いているシート・確認:なし / 時間帯の記録 / 時間帯の取り消しの確認 / 頓服の記録 */
 type Modal =
@@ -150,6 +151,8 @@ export function MedicationScreen({ onOpenHistory, onOpenSettings }: Props) {
         </div>
       </header>
       {renderContent()}
+      {/* 医療のアプリではないこと(SPEC.md 14章④) */}
+      <p className="settings-note medical-notice">{MEDICAL_NOTICE}</p>
       {scheduledSection && (
         <ScheduledIntakeSheet
           timing={scheduledSection.timing}

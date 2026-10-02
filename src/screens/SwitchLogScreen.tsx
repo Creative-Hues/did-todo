@@ -22,6 +22,7 @@ import {
   tagNamesOf,
 } from '../lib/switchLog';
 import { formatClockInLogicalDay, formatLogicalDateHeading } from '../lib/timeFormat';
+import { SWITCH_LOG_NOTICE } from '../lib/about';
 import { SwitchLogEditScreen } from './SwitchLogEditScreen';
 import { SwitchTagSettingsScreen } from './SwitchTagSettingsScreen';
 
@@ -160,6 +161,8 @@ export function SwitchLogScreen({ onBack }: Props) {
           きっかけの設定
         </button>
       </section>
+      {/* 診断ではないこと(SPEC.md 14章④) */}
+      <p className="settings-note">{SWITCH_LOG_NOTICE}</p>
       {printView}
     </main>
   );

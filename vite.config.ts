@@ -4,6 +4,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import type { Plugin } from 'vite';
 import { DB_VERSION } from './src/db/dbVersion';
 import { buildVersionInfo, VERSION_FILE_NAME } from './src/lib/updateNotice';
+import { formatAppVersion } from './src/lib/appVersion';
 
 // GitHub Pages の公開先(https://creative-hues.github.io/did-todo/)に合わせる
 const base = '/did-todo/';
@@ -26,8 +27,21 @@ function versionFilePlugin(): Plugin {
   };
 }
 
+/**
+ * 変更の目印(コミットの番号)。GitHub Actions が入れる GITHUB_SHA を読む。手元のビルドなどで読めなければ null。
+ * Node の型定義を入れていないので、process は globalThis から型を付けて読む
+ */
+function currentCommit(): string | null {
+  const nodeProcess = (globalThis as { process?: { env: Record<string, string | undefined> } }).process;
+  return nodeProcess?.env.GITHUB_SHA ?? null;
+}
+
 export default defineConfig({
   base,
+  // アプリの版(SPEC.md 14章⑥)。公開した日付と変更の目印を、ビルドのときに入れる
+  define: {
+    __APP_VERSION__: JSON.stringify(formatAppVersion(new Date(), currentCommit())),
+  },
   plugins: [
     react(),
     versionFilePlugin(),
