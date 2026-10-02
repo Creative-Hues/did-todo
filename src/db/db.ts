@@ -47,6 +47,8 @@ export class AppDatabase extends Dexie {
   switchLogs!: EntityTable<SwitchLog, 'id'>;
   meta!: EntityTable<AppMeta, 'key'>;
 
+  // データベースの名前は、URL を変えても(SPEC.md 19章)以前のまま変えない。
+  // 端末の中だけの名前で、画面にもリンクにも出ない。変えると、同じ場所に保存されていたデータを読めなくなるため
   constructor(name = 'did-todo') {
     super(name);
     // 最初の項目が主キー、以降は検索に使う項目(インデックス)

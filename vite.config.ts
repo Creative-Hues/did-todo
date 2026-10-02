@@ -6,8 +6,8 @@ import { DB_VERSION } from './src/db/dbVersion';
 import { buildVersionInfo, VERSION_FILE_NAME } from './src/lib/updateNotice';
 import { formatAppVersion } from './src/lib/appVersion';
 
-// GitHub Pages の公開先(https://creative-hues.github.io/did-todo/)に合わせる
-const base = '/did-todo/';
+// GitHub Pages の公開先(https://creative-hues.github.io/hitotsuyane/)に合わせる(SPEC.md 19章)
+const base = '/hitotsuyane/';
 
 /**
  * 公開のときに version.json(新しい版のデータベースの版)を書き出す(SPEC.md 18.3)。
