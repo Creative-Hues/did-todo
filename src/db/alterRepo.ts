@@ -1,4 +1,4 @@
-// 人格の保存・更新・削除(削除は完了記録がない人格だけ。SPEC.md 3.1)
+// 人格の保存・更新・削除(削除は記録がない人格だけ。SPEC.md 3.1)
 import type { AppDatabase } from './db';
 import { buildDefaultProfileSections, EMPTY_ALTER_PROFILE } from './initialData';
 import { nextOrder, reorderSubset } from '../lib/ordering';
@@ -73,7 +73,7 @@ export async function reorderAlters(database: AppDatabase, orderedIds: readonly 
 }
 
 /**
- * その人格の完了記録・服薬記録・受診メモ・コメント・バケットの件数の合計(SPEC.md 3.1)。
+ * その人格の完了記録・服薬記録・受診メモ・コメント・バケット・交代の記録の件数の合計(SPEC.md 3.1)。
  * バケットは、その人格のリストの項目(削除済みも含む)と、協力者に入っている項目を数える。
  * 全件を見て数える(記録は1年分だけ、メモ・コメント・バケットも多くはならないため)
  */
@@ -84,6 +84,7 @@ export async function countAlterRecords(database: AppDatabase, id: string): Prom
     database.clinicNotes.filter((note) => note.alterId === id).count(),
     database.clinicNoteComments.filter((comment) => comment.alterId === id).count(),
     database.bucketItems.filter((item) => item.alterId === id || item.helperAlterIds.includes(id)).count(),
+    database.switchLogs.where('alterId').equals(id).count(),
   ]);
   return counts.reduce((sum, count) => sum + count, 0);
 }
@@ -99,7 +100,7 @@ export async function countFilledProfileSections(database: AppDatabase, id: stri
 
 /**
  * 人格を削除し、すべてのタスクの「気にしている人格」からも外す。その人格の見出しも消す。
- * 完了記録・服薬記録・受診メモ・コメント・バケットのどれかが1件でもある人格は削除せず false を返す
+ * 完了記録・服薬記録・受診メモ・コメント・バケット・交代の記録のどれかが1件でもある人格は削除せず false を返す
  * (削除したら true。SPEC.md 3.1)
  */
 export async function deleteAlter(database: AppDatabase, id: string): Promise<boolean> {
@@ -111,6 +112,7 @@ export async function deleteAlter(database: AppDatabase, id: string): Promise<bo
     database.clinicNotes,
     database.clinicNoteComments,
     database.bucketItems,
+    database.switchLogs,
     database.profileSections,
   ];
   return database.transaction('rw', tables, async () => {

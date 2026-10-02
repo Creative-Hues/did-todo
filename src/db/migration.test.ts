@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import { Dexie } from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from './db';
+import { DEFAULT_SWITCH_TAGS } from '../lib/switchLog';
 import type { AlterV1 } from './initialData';
 import type { CompletionRecord, Medication, MedicationIntake, StockLog, Task } from '../lib/types';
 
@@ -53,6 +54,13 @@ function openV4(): Dexie {
   const v4 = openV3();
   v4.version(4).stores({ clinicNoteComments: 'id, noteId, createdAt' });
   return v4;
+}
+
+/** 版5のときの定義(db.ts の version(1)〜version(5) と同じ。版5はテーブルの形を変えていない) */
+function openV5(): Dexie {
+  const v5 = openV4();
+  v5.version(5).stores({});
+  return v5;
 }
 
 /** 最初の4つの時間帯の ID・名前・並び順・非表示(作成日時は版を上げた時刻なので比べない) */
@@ -117,7 +125,7 @@ describe('データベースの版を上げる', () => {
     database = new AppDatabase(DB_NAME);
     await database.open();
 
-    expect(database.verno).toBe(5);
+    expect(database.verno).toBe(6);
     expect(await database.alters.orderBy('order').toArray()).toEqual([
       { ...alterA, reading: '', categoryId: null, age: '', gender: '', identify: '' },
       { ...alterB, reading: '', categoryId: null, age: '', gender: '', identify: '' },
@@ -244,7 +252,7 @@ describe('データベースの版を上げる', () => {
       database = new AppDatabase(DB_NAME);
       await database.open();
 
-      expect(database.verno).toBe(5);
+      expect(database.verno).toBe(6);
       expect(await timingRows(database)).toEqual(DEFAULT_TIMING_ROWS);
       expect(await database.medications.orderBy('order').toArray()).toEqual(medications);
       expect(await database.medicationIntakes.orderBy('id').toArray()).toEqual(intakes);
@@ -262,7 +270,7 @@ describe('データベースの版を上げる', () => {
 
       database = new AppDatabase(DB_NAME);
       await database.open();
-      expect(database.verno).toBe(5);
+      expect(database.verno).toBe(6);
       expect(await timingRows(database)).toEqual(DEFAULT_TIMING_ROWS);
     });
 
@@ -383,7 +391,7 @@ describe('データベースの版を上げる', () => {
       database = new AppDatabase(DB_NAME);
       await database.open();
 
-      expect(database.verno).toBe(5);
+      expect(database.verno).toBe(6);
       for (const [name, rows] of Object.entries(v3Rows)) {
         expect(await database.table(name).toArray(), name).toEqual(rows);
       }
@@ -408,7 +416,7 @@ describe('データベースの版を上げる', () => {
       v1.close();
       database = new AppDatabase(DB_NAME);
       await database.open();
-      expect(database.verno).toBe(5);
+      expect(database.verno).toBe(6);
       expect(await database.clinicNoteComments.count()).toBe(0);
       expect(await database.clinicNoteCategories.count()).toBe(7);
       expect(await database.medicationTimings.count()).toBe(4);
@@ -417,7 +425,7 @@ describe('データベースの版を上げる', () => {
 
       database = new AppDatabase(DB_NAME);
       await database.open();
-      expect(database.verno).toBe(5);
+      expect(database.verno).toBe(6);
       expect(await database.clinicNoteComments.count()).toBe(0);
       expect(await database.clinicNoteCategories.count()).toBe(7);
       expect(await database.medicationTimings.count()).toBe(4);
@@ -490,7 +498,7 @@ describe('データベースの版を上げる', () => {
     it('今のデータは1文字も変わらず、見出しのない人格と「全体のこと」にだけ最初の見出しが入る', async () => {
       database = await openFromV4();
 
-      expect(database.verno).toBe(5);
+      expect(database.verno).toBe(6);
       for (const [name, rows] of Object.entries(v4Rows)) {
         expect(await database.table(name).toArray(), name).toEqual(rows);
       }
@@ -540,6 +548,73 @@ describe('データベースの版を上げる', () => {
       database = new AppDatabase(DB_NAME);
       expect(await sectionRows(database, null)).toEqual(commonRows);
       expect(await database.profileSections.count()).toBe(3);
+    });
+  });
+  describe('版5 → 版6(交代のきっかけと交代の記録。SPEC.md 3.5・17章)', () => {
+    /** きっかけの [ID, 名前, 並び順, 非表示] を並び順で */
+    async function tagRows(db: AppDatabase) {
+      return (await db.switchTags.orderBy('order').toArray()).map((t) => [t.id, t.name, t.order, t.hidden]);
+    }
+    const defaultTagRows = DEFAULT_SWITCH_TAGS.map((tag, index) => [tag.id, tag.name, index, false]);
+
+    const v5Rows: Record<string, object[]> = {
+      alters: [{ ...alterA, reading: '', categoryId: null, age: '', gender: '', identify: '' }],
+      tasks: [task],
+      records,
+      profileSections: [
+        {
+          id: 'p1',
+          alterId: null,
+          title: 'みんなに共通の配慮',
+          body: '大きな音が苦手',
+          includeInPdf: true,
+          order: 0,
+          createdAt: '2026-09-01T00:00:00.000Z',
+        },
+      ],
+      meta: [{ key: 'showStats', value: 'on' }],
+    };
+
+    it('今のデータは1文字も変わらず、最初のきっかけが入り、記録は空で書き込める', async () => {
+      const v5 = openV5();
+      await v5.open();
+      for (const [name, rows] of Object.entries(v5Rows)) {
+        await v5.table(name).bulkAdd(rows);
+      }
+      v5.close();
+
+      database = new AppDatabase(DB_NAME);
+      await database.open();
+      expect(database.verno).toBe(6);
+      for (const [name, rows] of Object.entries(v5Rows)) {
+        expect(await database.table(name).toArray(), name).toEqual(rows);
+      }
+      expect(await tagRows(database)).toEqual(defaultTagRows);
+      expect(await database.switchLogs.count()).toBe(0);
+
+      const log = { id: 'sw1', alterId: 'alter-a', noticedAt: '2026-10-02T12:00:00.000Z', switchedAt: null, tagIds: [] };
+      await database.switchLogs.add(log);
+      database.close();
+      database = new AppDatabase(DB_NAME);
+      expect(await database.switchLogs.toArray()).toEqual([log]);
+      // 開き直しても、きっかけは増えない
+      expect(await tagRows(database)).toEqual(defaultTagRows);
+    });
+
+    it('版1から開いても、新しく入れても、最初のきっかけが1回だけ入る', async () => {
+      const v1 = openV1();
+      await v1.table('alters').add(alterA);
+      v1.close();
+      database = new AppDatabase(DB_NAME);
+      expect(await tagRows(database)).toEqual(defaultTagRows);
+      database.close();
+      await Dexie.delete(DB_NAME);
+
+      database = new AppDatabase(DB_NAME);
+      await database.open();
+      database.close();
+      database = new AppDatabase(DB_NAME);
+      expect(await tagRows(database)).toEqual(defaultTagRows);
     });
   });
 });

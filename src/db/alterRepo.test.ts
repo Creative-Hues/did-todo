@@ -220,6 +220,21 @@ describe('人格の保存', () => {
       expect(await database.bucketItems.count()).toBe(1);
     });
 
+    it('交代の記録だけがある人格も削除されない(SPEC.md 3.1・17.3)', async () => {
+      const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
+      await database.switchLogs.add({
+        id: 'sw1',
+        alterId: a.id,
+        noticedAt: now.toISOString(),
+        switchedAt: null,
+        tagIds: [],
+      });
+
+      expect(await countAlterRecords(database, a.id)).toBe(1);
+      expect(await deleteAlter(database, a.id)).toBe(false);
+      expect(await database.alters.get(a.id)).toBeDefined();
+    });
+
     it('服薬記録だけがある人格も削除されない', async () => {
       const a = await addAlter(database, { name: 'A', color: '#111111', categoryId: null }, now);
       await database.medicationIntakes.add({

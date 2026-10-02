@@ -4,11 +4,13 @@ import {
   clampStatsMonth,
   diffLogicalDays,
   nextLogicalMonth,
+  parseDateTimeLocal,
   previousLogicalMonth,
   statsMonthRange,
   startOfLogicalDate,
   startOfLogicalMonth,
   toCalendarDate,
+  toDateTimeLocalValue,
   toLogicalDate,
   toLogicalMonth,
   toLogicalWeek,
@@ -123,5 +125,20 @@ describe('論理日どうしの日数差', () => {
 
   it('前の日付ならマイナスになる', () => {
     expect(diffLogicalDays('2026-09-25', '2026-09-24')).toBe(-1);
+  });
+});
+
+describe('日時入力の値(交代の記録の「時間を指定」。SPEC.md 17.1)', () => {
+  it('端末のローカル時刻で「YYYY-MM-DDTHH:MM」にし、秒は切り捨てる', () => {
+    expect(toDateTimeLocalValue(new Date(2026, 9, 2, 9, 5, 59))).toBe('2026-10-02T09:05');
+    expect(toDateTimeLocalValue(new Date(2026, 0, 1, 0, 0))).toBe('2026-01-01T00:00');
+  });
+
+  it('値を日時に戻す。秒付きも読める。形が違う・ない日付は null', () => {
+    expect(parseDateTimeLocal('2026-10-02T09:05')?.getTime()).toBe(new Date(2026, 9, 2, 9, 5).getTime());
+    expect(parseDateTimeLocal('2026-10-02T09:05:30')?.getTime()).toBe(new Date(2026, 9, 2, 9, 5).getTime());
+    expect(parseDateTimeLocal('')).toBeNull();
+    expect(parseDateTimeLocal('2026-02-30T10:00')).toBeNull();
+    expect(parseDateTimeLocal('2026-10-02 09:05')).toBeNull();
   });
 });

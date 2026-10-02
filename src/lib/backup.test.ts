@@ -10,6 +10,7 @@ import {
   type BackupData,
 } from './backup';
 import { buildInitialMedicationTimings } from './medicationTimings';
+import { buildInitialSwitchTags } from './switchLog';
 
 function emptyData(): BackupData {
   return {
@@ -26,6 +27,8 @@ function emptyData(): BackupData {
     clinicNoteCategories: [],
     clinicNoteComments: [],
     bucketItems: [],
+    switchTags: [],
+    switchLogs: [],
   };
 }
 
@@ -379,5 +382,63 @@ describe('書き出しのすすめ', () => {
     expect(isBackupOverdue(last, new Date(2026, 8, 28, 5, 0))).toBe(true); // 9/28 → 30日
     expect(backupReminderText(last, new Date(2026, 8, 28, 5, 0))).toContain('30日以上');
     expect(backupReminderText(last, new Date(2026, 8, 28, 4, 59))).toBeNull();
+  });
+});
+
+describe('交代の記録のバックアップ(SPEC.md 12章・17章)', () => {
+  function dataWithSwitches(): BackupData {
+    const data = emptyData();
+    data.switchTags.push(...buildInitialSwitchTags('2026-09-01T00:00:00.000Z'), {
+      id: 'tag-custom',
+      name: '人混み',
+      hidden: true,
+      order: 6,
+      createdAt: '2026-09-02T00:00:00.000Z',
+    });
+    data.switchLogs.push(
+      {
+        id: 'sw1',
+        alterId: 'alter-a',
+        noticedAt: '2026-09-27T12:00:00.000Z',
+        switchedAt: '2026-09-27T11:30:00.000Z',
+        tagIds: ['switch-tag-sound', 'tag-custom'],
+      },
+      { id: 'sw2', alterId: null, noticedAt: '2026-09-28T01:00:00.000Z', switchedAt: null, tagIds: [] },
+    );
+    return data;
+  }
+
+  it('きっかけと記録も、書き出したとおりに読み込める', () => {
+    const data = dataWithSwitches();
+    const result = parseBackup(serializeBackup(buildBackup(data, now)));
+    expect(result.ok && result.backup.data).toEqual(data);
+  });
+
+  it('きっかけ・記録がない古いファイルは、最初のきっかけと「記録なし」として読み込む(作成日時は書き出した日時)', () => {
+    const json = exportedJson();
+    delete (json.data as Record<string, unknown>).switchTags;
+    delete (json.data as Record<string, unknown>).switchLogs;
+    const result = parseBackup(JSON.stringify(json));
+    if (!result.ok) {
+      throw new Error(result.reason);
+    }
+    expect(result.backup.data.switchTags).toEqual(buildInitialSwitchTags(now.toISOString()));
+    expect(result.backup.data.switchLogs).toEqual([]);
+  });
+
+  it('ないきっかけを指している記録があるファイルは読み込まない', () => {
+    const data = dataWithSwitches();
+    data.switchLogs[1].tagIds = ['no-such-tag'];
+    const result = parseBackup(serializeBackup(buildBackup(data, now)));
+    expect(result).toEqual({ ok: false, reason: '「交代の記録」の2件目のきっかけが見つかりません' });
+  });
+
+  it('記録の形が違えば読み込まない', () => {
+    const json = exportedJson(dataWithSwitches());
+    (json.data as { switchLogs: Record<string, unknown>[] }).switchLogs[0].switchedAt = 0;
+    expect(parseBackup(JSON.stringify(json))).toEqual({
+      ok: false,
+      reason: '「交代の記録」の1件目の形が正しくありません',
+    });
   });
 });

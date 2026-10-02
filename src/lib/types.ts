@@ -198,6 +198,29 @@ export interface BucketItem {
   deletedAt?: string;
 }
 
+/** 交代のきっかけ(永続データ。SPEC.md 17.2) */
+export interface SwitchTag {
+  id: string;
+  name: string;
+  /** 非表示フラグ(記録のときに選べなくなる。過去の記録はそのまま) */
+  hidden: boolean;
+  order: number;
+  createdAt: string;
+}
+
+/** 交代の記録(永続データ。自動では削除しない。SPEC.md 17.3) */
+export interface SwitchLog {
+  id: string;
+  /** 交代した人格のID。「わからない」の場合は null */
+  alterId: string | null;
+  /** 気づいた時刻(ボタンを押した時刻。ISO形式) */
+  noticedAt: string;
+  /** 交代した時刻(ISO形式)。「今」なら noticedAt と同じ。「わからない」なら null */
+  switchedAt: string | null;
+  /** きっかけのID(0個も可。0個は「わからない」) */
+  tagIds: string[];
+}
+
 /** 端末の設定(キーと値)。バックアップには含めない */
 export interface AppMeta {
   /**

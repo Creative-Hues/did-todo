@@ -14,9 +14,12 @@ import type {
   MedicationTiming,
   ProfileSection,
   StockLog,
+  SwitchLog,
+  SwitchTag,
   Task,
 } from '../lib/types';
 import { buildInitialMedicationTimings } from '../lib/medicationTimings';
+import { buildInitialSwitchTags } from '../lib/switchLog';
 import {
   buildInitialCategories,
   buildInitialClinicNoteCategories,
@@ -39,6 +42,8 @@ export class AppDatabase extends Dexie {
   clinicNoteCategories!: EntityTable<ClinicNoteCategory, 'id'>;
   clinicNoteComments!: EntityTable<ClinicNoteComment, 'id'>;
   bucketItems!: EntityTable<BucketItem, 'id'>;
+  switchTags!: EntityTable<SwitchTag, 'id'>;
+  switchLogs!: EntityTable<SwitchLog, 'id'>;
   meta!: EntityTable<AppMeta, 'key'>;
 
   constructor(name = 'did-todo') {
@@ -83,12 +88,18 @@ export class AppDatabase extends Dexie {
     this.version(5)
       .stores({})
       .upgrade((tx) => addMissingProfileSections(tx, new Date()));
-    // 新しく入れたとき(版1〜5の upgrade を通らない)も、同じ最初のデータを入れる
+    // 版6:SPEC.md 3.5・17章。交代のきっかけと交代の記録のテーブルを足し、最初のきっかけを入れる
+    // 今のデータは書き換えない
+    this.version(6)
+      .stores({ switchTags: 'id, order', switchLogs: 'id, alterId, noticedAt' })
+      .upgrade((tx) => addInitialSwitchTags(tx, new Date()));
+    // 新しく入れたとき(版1〜6の upgrade を通らない)も、同じ最初のデータを入れる
     this.on('populate', async (tx) => {
       const now = new Date();
       await addInitialData(tx, now);
       await addInitialMedicationTimings(tx, now);
       await addMissingProfileSections(tx, now);
+      await addInitialSwitchTags(tx, now);
     });
   }
 }
@@ -107,6 +118,11 @@ async function addInitialMedicationTimings(tx: Transaction, now: Date): Promise<
   await tx
     .table<MedicationTiming, string>('medicationTimings')
     .bulkAdd(buildInitialMedicationTimings(now.toISOString()));
+}
+
+/** 最初のきっかけを入れる(SPEC.md 17.2) */
+async function addInitialSwitchTags(tx: Transaction, now: Date): Promise<void> {
+  await tx.table<SwitchTag, string>('switchTags').bulkAdd(buildInitialSwitchTags(now.toISOString()));
 }
 
 /** 見出しが1つもない人格と「全体のこと」に、最初の見出しを入れる(SPEC.md 3.5) */

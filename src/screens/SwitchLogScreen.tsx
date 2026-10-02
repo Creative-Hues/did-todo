@@ -1,0 +1,166 @@
+// 交代の記録の画面(SPEC.md 17.4):月ごとの集計・記録の一覧・受診用の書き出し・きっかけの設定の入口
+// 人格情報タブの一覧画面の「交代の記録」から開く
+import { useState } from 'react';
+import { SwitchReportDocument } from '../components/switch/SwitchReportDocument';
+import { SwitchStatsView, UNKNOWN_SEGMENT_COLOR } from '../components/switch/SwitchStatsView';
+import { db } from '../db/db';
+import { useListScroll } from '../hooks/useListScroll';
+import { useLiveQuery } from '../hooks/useLiveQuery';
+import { useNow } from '../hooks/useNow';
+import { usePrintNode } from '../hooks/usePrintNode';
+import { nextLogicalMonth, previousLogicalMonth } from '../lib/period';
+import { statsMonthLabel } from '../lib/stats';
+import {
+  buildSwitchStats,
+  clampSwitchMonth,
+  groupSwitchLogsByDay,
+  resolveSwitchAlter,
+  switchAlterLabel,
+  switchLogsInMonth,
+  switchLogTime,
+  switchMonthRange,
+  tagNamesOf,
+} from '../lib/switchLog';
+import { formatClockInLogicalDay, formatLogicalDateHeading } from '../lib/timeFormat';
+import { SwitchLogEditScreen } from './SwitchLogEditScreen';
+import { SwitchTagSettingsScreen } from './SwitchTagSettingsScreen';
+
+/** 表示中の画面:一覧 / 記録の編集 / きっかけの設定 */
+type View = { kind: 'list' } | { kind: 'edit'; id: string } | { kind: 'tags' };
+
+const EMPTY_TEXT = 'この月の記録はありません';
+
+interface Props {
+  onBack: () => void;
+}
+
+export function SwitchLogScreen({ onBack }: Props) {
+  const alters = useLiveQuery(() => db.alters.toArray());
+  const tags = useLiveQuery(() => db.switchTags.toArray());
+  const logs = useLiveQuery(() => db.switchLogs.toArray());
+  const now = useNow();
+  const { print, printView } = usePrintNode();
+  const [view, setView] = useState<View>({ kind: 'list' });
+  // 選んでいる月(null なら今の論理月)。編集画面へ行って戻っても保つ
+  const [month, setMonth] = useState<string | null>(null);
+  const rememberScroll = useListScroll(view.kind === 'list');
+
+  const open = (next: View) => {
+    rememberScroll();
+    setView(next);
+  };
+  const backToList = () => setView({ kind: 'list' });
+
+  if (!alters || !tags || !logs) {
+    return (
+      <main className="app">
+        <p>読み込み中…</p>
+      </main>
+    );
+  }
+
+  if (view.kind === 'tags') {
+    return <SwitchTagSettingsScreen onBack={backToList} />;
+  }
+  if (view.kind === 'edit') {
+    const log = logs.find((item) => item.id === view.id);
+    // 削除済みなら一覧を出す
+    if (log) {
+      return <SwitchLogEditScreen key={log.id} log={log} alters={alters} tags={tags} onBack={backToList} />;
+    }
+  }
+
+  const range = switchMonthRange(logs, now);
+  const shownMonth = clampSwitchMonth(month, range);
+  const stats = buildSwitchStats({ logs, month: shownMonth, alters, tags });
+  const days = groupSwitchLogsByDay(switchLogsInMonth(logs, shownMonth));
+
+  return (
+    <main className="app">
+      <header className="screen-header">
+        <button type="button" onClick={onBack}>
+          ‹ 戻る
+        </button>
+        <h1>交代の記録</h1>
+        <button
+          type="button"
+          disabled={stats.total === 0}
+          onClick={() =>
+            print(
+              <SwitchReportDocument
+                month={shownMonth}
+                stats={stats}
+                logs={logs}
+                alters={alters}
+                tags={tags}
+                createdAt={new Date()}
+              />,
+            )
+          }
+        >
+          受診用にPDF
+        </button>
+      </header>
+      <div className="stats-month">
+        <button type="button" disabled={shownMonth <= range.oldest} onClick={() => setMonth(previousLogicalMonth(shownMonth))}>
+          ‹ 前の月
+        </button>
+        <span className="stats-month__label">{statsMonthLabel(shownMonth)}</span>
+        <button type="button" disabled={shownMonth >= range.latest} onClick={() => setMonth(nextLogicalMonth(shownMonth))}>
+          次の月 ›
+        </button>
+      </div>
+
+      {stats.total === 0 ? (
+        <p className="empty">{EMPTY_TEXT}</p>
+      ) : (
+        <>
+          <section className="settings-section">
+            <h2>集計(全{stats.total}回)</h2>
+            <SwitchStatsView stats={stats} />
+          </section>
+          <section className="settings-section">
+            <h2>記録</h2>
+            {days.map((day) => (
+              <div key={day.logicalDate} className="switch-day">
+                <h3 className="alter-group__heading">{formatLogicalDateHeading(day.logicalDate)}</h3>
+                <ul className="item-list">
+                  {day.logs.map((log) => {
+                    const { name, color } = switchAlterLabel(resolveSwitchAlter(log, alters));
+                    return (
+                      <li key={log.id}>
+                        <button type="button" className="switch-entry" onClick={() => open({ kind: 'edit', id: log.id })}>
+                          <span className="history-entry__time">
+                            {formatClockInLogicalDay(switchLogTime(log), day.logicalDate)}
+                          </span>
+                          <span className="switch-entry__body">
+                            <span className="stats-list__alter">
+                              <span className="color-dot" style={{ backgroundColor: color ?? UNKNOWN_SEGMENT_COLOR }} />
+                              <span className="item-name">{name}</span>
+                            </span>
+                            <span className="switch-entry__sub">
+                              きっかけ:{tagNamesOf(log, tags).join('、')}
+                              {log.switchedAt === null && '(時刻は気づいた時刻)'}
+                            </span>
+                          </span>
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
+          </section>
+        </>
+      )}
+
+      <section className="settings-section">
+        <h2>きっかけ</h2>
+        <button type="button" className="add-button" onClick={() => open({ kind: 'tags' })}>
+          きっかけの設定
+        </button>
+      </section>
+      {printView}
+    </main>
+  );
+}

@@ -2,6 +2,7 @@
 // ライブラリを使わず、テーブルごとに「項目名 → チェック関数」の表で確かめる。
 // 表は Record<keyof 型, …> なので、型に項目を足したら、ここも直さないとビルドが通らない。
 import { buildInitialMedicationTimings } from './medicationTimings';
+import { buildInitialSwitchTags } from './switchLog';
 import type {
   Alter,
   AlterCategory,
@@ -16,6 +17,8 @@ import type {
   MedicationTiming,
   ProfileSection,
   StockLog,
+  SwitchLog,
+  SwitchTag,
   Task,
 } from './types';
 
@@ -178,6 +181,23 @@ const bucketItemSchema: Schema<BucketItem> = {
   deletedAt: optional(isString),
 };
 
+const switchTagSchema: Schema<SwitchTag> = {
+  id: isString,
+  name: isString,
+  hidden: isBoolean,
+  order: isNumber,
+  createdAt: isString,
+};
+
+const switchLogSchema: Schema<SwitchLog> = {
+  id: isString,
+  alterId: isNullableString,
+  noticedAt: isString,
+  switchedAt: isNullableString,
+  // きっかけのID。きっかけにあるかどうかは、全体を読んだあとで確かめる(checkReferences)
+  tagIds: isStringArray,
+};
+
 /** バックアップに入れるデータ(端末の設定は入れない) */
 export interface BackupData {
   alters: Alter[];
@@ -193,6 +213,8 @@ export interface BackupData {
   clinicNoteCategories: ClinicNoteCategory[];
   clinicNoteComments: ClinicNoteComment[];
   bucketItems: BucketItem[];
+  switchTags: SwitchTag[];
+  switchLogs: SwitchLog[];
 }
 
 /** テーブルごとのチェック表と、エラー表示用の名前 */
@@ -210,6 +232,8 @@ const TABLES: { [K in keyof BackupData]: { label: string; schema: Schema<BackupD
   clinicNoteCategories: { label: '受診メモの分類', schema: namedItemSchema },
   clinicNoteComments: { label: '受診メモのコメント', schema: clinicNoteCommentSchema },
   bucketItems: { label: 'バケット', schema: bucketItemSchema },
+  switchTags: { label: '交代のきっかけ', schema: switchTagSchema },
+  switchLogs: { label: '交代の記録', schema: switchLogSchema },
 };
 
 /** バックアップに入れるテーブルの名前(並び順は書き出しの順) */
@@ -263,6 +287,7 @@ function parseTable<K extends keyof BackupData>(name: K, rows: unknown): BackupD
  * - 薬と服薬記録の時間帯が、時間帯の一覧にあるか
  * - コメントのメモが、受診メモにあるか
  * - プロフィールの見出しの人格が、人格にあるか(「全体のこと」の見出しは人格を指さない)
+ * - 交代の記録のきっかけが、交代のきっかけにあるか
  * 人格の区分は確かめない(ない区分を指す人格は「未分類」に出す。SPEC.md 12章)
  * だめなときは理由の文字列を返す
  */
@@ -286,6 +311,11 @@ function checkReferences(data: BackupData): string | null {
   if (sectionIndex >= 0) {
     return `「プロフィール」の${sectionIndex + 1}件目の人格が見つかりません`;
   }
+  const tagIds = new Set(data.switchTags.map((tag) => tag.id));
+  const switchLogIndex = data.switchLogs.findIndex((log) => log.tagIds.some((id) => !tagIds.has(id)));
+  if (switchLogIndex >= 0) {
+    return `「交代の記録」の${switchLogIndex + 1}件目のきっかけが見つかりません`;
+  }
   return null;
 }
 
@@ -293,6 +323,8 @@ function checkReferences(data: BackupData): string | null {
  * あとのフェーズで足したテーブルがない古いファイルのとき、そのテーブルの中身を決める(SPEC.md 12章)。
  * - 服薬の時間帯の一覧(フェーズ9段階Eで追加):最初の4つの時間帯。作成日時は書き出した日時
  * - 受診メモのコメント(フェーズ10で追加):コメントなし
+ * - 交代のきっかけ(フェーズ15で追加):最初のきっかけ。作成日時は書き出した日時
+ * - 交代の記録(フェーズ15で追加):記録なし
  * ほかのテーブルは、ないときはそのまま(読み込まない)
  */
 function rowsOf(name: keyof BackupData, value: Record<string, unknown>, exportedAt: string): unknown {
@@ -303,6 +335,10 @@ function rowsOf(name: keyof BackupData, value: Record<string, unknown>, exported
     case 'medicationTimings':
       return buildInitialMedicationTimings(exportedAt);
     case 'clinicNoteComments':
+      return [];
+    case 'switchTags':
+      return buildInitialSwitchTags(exportedAt);
+    case 'switchLogs':
       return [];
     default:
       return undefined;

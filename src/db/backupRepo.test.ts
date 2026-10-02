@@ -136,6 +136,20 @@ function fullData(): BackupData {
         deletedAt: '2026-09-27T01:00:00.000Z',
       },
     ],
+    switchTags: [
+      { id: 'switch-tag-sound', name: '音', hidden: false, order: 0, createdAt },
+      { id: 'tag-custom', name: '人混み', hidden: true, order: 1, createdAt },
+    ],
+    switchLogs: [
+      {
+        id: 'sw1',
+        alterId: 'alter-b',
+        noticedAt: '2026-09-27T12:00:00.000Z',
+        switchedAt: '2026-09-27T11:30:00.000Z',
+        tagIds: ['switch-tag-sound', 'tag-custom'],
+      },
+      { id: 'sw2', alterId: null, noticedAt: '2026-09-28T01:00:00.000Z', switchedAt: null, tagIds: [] },
+    ],
   };
 }
 

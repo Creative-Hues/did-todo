@@ -1452,3 +1452,241 @@ textarea {
   border-bottom: 2px solid #ccc;
   color: #888; /* ダークモードでも読める灰色 */
 }
+
+/* ---- フェーズ15:交代の記録(SPEC.md 17章) ---- */
+
+/* タブバーと「変わったことに気づいた」ボタンに隠れないよう、画面の下に余白をとる */
+body {
+  padding-bottom: calc(56px + 64px + env(safe-area-inset-bottom));
+}
+
+/* 「変わったことに気づいた」:タブバーのすぐ上の右側に、どのタブからでも押せるように置く */
+.switch-button {
+  position: fixed;
+  right: calc(12px + env(safe-area-inset-right));
+  bottom: calc(56px + 10px + env(safe-area-inset-bottom));
+  z-index: 10;
+  min-height: 46px;
+  padding: 0 18px;
+  border: none;
+  border-radius: 999px;
+  background: #1f6fd1;
+  color: #fff;
+  font-weight: bold;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+/* 「記録しました」(少したったら消える) */
+.switch-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(56px + 66px + env(safe-area-inset-bottom));
+  z-index: 15;
+  transform: translateX(-50%);
+  margin: 0;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  white-space: nowrap;
+}
+
+/* シートの上の段:「‹ 戻る」・見出し・(右は空き) */
+.switch-sheet__head {
+  display: grid;
+  grid-template-columns: 88px 1fr 88px;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.switch-sheet__head > button {
+  justify-self: start;
+}
+
+.switch-sheet__title {
+  margin: 0;
+  text-align: center;
+}
+
+.switch-sheet__note {
+  margin: 0 0 12px;
+}
+
+.switch-sheet__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 20px 0;
+}
+
+/* 「今」「時間を指定」「わからない」:人格ボタンと同じ大きさ */
+.choice-button {
+  min-height: 56px;
+  border-radius: 12px;
+  font-size: 1.125rem;
+  font-weight: bold;
+}
+
+.sheet__wide-button {
+  width: 100%;
+  min-height: 52px;
+  font-weight: bold;
+}
+
+.switch-time {
+  margin-bottom: 20px;
+}
+
+.switch-time input[type='datetime-local'],
+.edit-form input[type='datetime-local'] {
+  min-height: 44px;
+  font-size: 1rem; /* 16px 未満だと iPhone で自動ズームされる */
+  padding: 0 8px;
+}
+
+/* きっかけのタグ:押すたびに選ぶ/外すが切り替わる */
+.tag-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-chip {
+  border: 2px solid #1f6fd1;
+  border-radius: 999px;
+  background: none;
+  color: inherit;
+}
+
+.tag-chip--selected {
+  background: #1f6fd1;
+  color: #fff;
+  font-weight: bold;
+}
+
+/* 記録の一覧の1行:左に時刻、右に人格ときっかけ */
+.switch-day {
+  margin-bottom: 16px;
+}
+
+.switch-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 4px;
+  border: none;
+  border-bottom: 1px solid #ccc;
+  background: none;
+  color: inherit;
+  text-align: left;
+}
+
+.switch-entry__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.switch-entry__sub {
+  font-size: 0.875rem;
+  overflow-wrap: anywhere;
+}
+
+/* 集計の時間帯・きっかけの行 */
+.switch-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.switch-row {
+  padding: 6px 0;
+}
+
+.switch-row + .switch-row {
+  border-top: 1px solid rgba(128, 128, 128, 0.25);
+}
+
+.switch-row__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.switch-row__label {
+  font-weight: bold;
+}
+
+/* 人格ごとの回数を横に積み重ねた帯 */
+.switch-bar {
+  display: flex;
+  height: 14px;
+  min-width: 14px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.switch-bar__segment {
+  flex-basis: 0;
+  min-width: 3px;
+}
+
+.switch-row__detail {
+  margin: 4px 0 0;
+  font-size: 0.8125rem;
+  overflow-wrap: anywhere;
+}
+
+/* 受診用の書き出し(印刷) */
+.switch-report__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95em;
+}
+
+.switch-report__table th,
+.switch-report__table td {
+  padding: 0.35em 0.5em;
+  border: 1pt solid #000;
+  text-align: left;
+  vertical-align: top;
+}
+
+.switch-report__table tr {
+  break-inside: avoid;
+}
+
+.switch-report__table th {
+  white-space: nowrap;
+}
+
+.switch-report__count,
+.switch-report__time {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.switch-report__alter {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  white-space: nowrap;
+}
+
+.switch-report__alter .color-dot {
+  width: 0.9em;
+  height: 0.9em;
+}
+
+.switch-report__day {
+  margin-bottom: 0.9em;
+}
+
+.switch-report__day h3 {
+  margin: 0 0 0.3em;
+  font-size: 1.05em;
+  break-after: avoid;
+}

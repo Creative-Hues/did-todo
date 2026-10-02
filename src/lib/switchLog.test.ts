@@ -1,0 +1,222 @@
+import { describe, expect, it } from 'vitest';
+import {
+  buildInitialSwitchTags,
+  buildSwitchStats,
+  clampSwitchMonth,
+  groupSwitchLogsByDay,
+  resolveSwitchedAt,
+  switchLogsInMonth,
+  switchLogTime,
+  switchMonthRange,
+  tagNamesOf,
+  timeBinIndex,
+} from './switchLog';
+import type { Alter, SwitchLog, SwitchTag } from './types';
+
+function alter(id: string, order: number, hidden = false): Alter {
+  return {
+    id,
+    name: `人格${id}`,
+    color: '#123456',
+    hidden,
+    order,
+    createdAt: '',
+    reading: '',
+    categoryId: null,
+    age: '',
+    gender: '',
+    identify: '',
+  };
+}
+
+const tags: SwitchTag[] = [
+  { id: 't-sound', name: '音', hidden: false, order: 0, createdAt: '' },
+  { id: 't-dream', name: '夢', hidden: true, order: 1, createdAt: '' },
+];
+
+/** 端末のローカル時刻で記録を作る(交代した時刻 = 気づいた時刻) */
+function log(id: string, alterId: string | null, at: Date, tagIds: string[] = []): SwitchLog {
+  return { id, alterId, noticedAt: at.toISOString(), switchedAt: at.toISOString(), tagIds };
+}
+
+describe('記録の時刻(SPEC.md 17.3)', () => {
+  it('交代した時刻がわかればその時刻、わからなければ気づいた時刻', () => {
+    expect(switchLogTime({ noticedAt: 'b', switchedAt: 'a' })).toBe('a');
+    expect(switchLogTime({ noticedAt: 'b', switchedAt: null })).toBe('b');
+  });
+});
+
+describe('「どれくらい前から自分?」(SPEC.md 17.1)', () => {
+  const noticed = new Date(2026, 9, 2, 21, 0);
+
+  it('「今」は気づいた時刻、「わからない」は null', () => {
+    expect(resolveSwitchedAt({ kind: 'now' }, noticed)).toBe(noticed.toISOString());
+    expect(resolveSwitchedAt({ kind: 'unknown' }, noticed)).toBeNull();
+  });
+
+  it('時間を指定したときは、気づいた時刻と同じかそれより前だけ', () => {
+    const before = new Date(2026, 9, 2, 20, 30);
+    expect(resolveSwitchedAt({ kind: 'at', date: before }, noticed)).toBe(before.toISOString());
+    expect(resolveSwitchedAt({ kind: 'at', date: noticed }, noticed)).toBe(noticed.toISOString());
+    expect(resolveSwitchedAt({ kind: 'at', date: new Date(2026, 9, 2, 21, 1) }, noticed)).toBe('afterNoticed');
+  });
+});
+
+describe('時間帯の振り分け(SPEC.md 17.5)', () => {
+  it('朝5時から3時間ずつ。境界の時刻は後ろの時間帯に入る', () => {
+    expect(timeBinIndex(new Date(2026, 9, 2, 5, 0))).toBe(0);
+    expect(timeBinIndex(new Date(2026, 9, 2, 7, 59))).toBe(0);
+    expect(timeBinIndex(new Date(2026, 9, 2, 8, 0))).toBe(1);
+    expect(timeBinIndex(new Date(2026, 9, 2, 22, 59))).toBe(5);
+    expect(timeBinIndex(new Date(2026, 9, 2, 23, 0))).toBe(6);
+    expect(timeBinIndex(new Date(2026, 9, 3, 1, 59))).toBe(6);
+    expect(timeBinIndex(new Date(2026, 9, 3, 2, 0))).toBe(7);
+    expect(timeBinIndex(new Date(2026, 9, 3, 4, 59))).toBe(7);
+  });
+});
+
+describe('月の振り分けと範囲(SPEC.md 17.4)', () => {
+  const now = new Date(2026, 9, 2, 12, 0);
+
+  it('論理月で振り分ける(1日 4:59 は前の月)', () => {
+    const logs = [
+      log('a', null, new Date(2026, 9, 1, 4, 59)),
+      log('b', null, new Date(2026, 9, 1, 5, 0)),
+      log('c', null, new Date(2026, 9, 2, 9, 0)),
+    ];
+    expect(switchLogsInMonth(logs, '2026-09').map((l) => l.id)).toEqual(['a']);
+    // 新しい順
+    expect(switchLogsInMonth(logs, '2026-10').map((l) => l.id)).toEqual(['c', 'b']);
+  });
+
+  it('交代した時刻がわからない記録は、気づいた時刻で振り分ける', () => {
+    const unknown: SwitchLog = {
+      id: 'u',
+      alterId: null,
+      noticedAt: new Date(2026, 9, 1, 6, 0).toISOString(),
+      switchedAt: null,
+      tagIds: [],
+    };
+    expect(switchLogsInMonth([unknown], '2026-10').map((l) => l.id)).toEqual(['u']);
+  });
+
+  it('見られる月は、いちばん古い記録の月〜今月。記録がなければ今月だけ', () => {
+    expect(switchMonthRange([], now)).toEqual({ oldest: '2026-10', latest: '2026-10' });
+    const range = switchMonthRange([log('a', null, new Date(2026, 6, 15, 12, 0))], now);
+    expect(range).toEqual({ oldest: '2026-07', latest: '2026-10' });
+    expect(clampSwitchMonth(null, range)).toBe('2026-10');
+    expect(clampSwitchMonth('2026-05', range)).toBe('2026-07');
+    expect(clampSwitchMonth('2026-11', range)).toBe('2026-10');
+    expect(clampSwitchMonth('2026-08', range)).toBe('2026-08');
+  });
+
+  it('論理日ごとにまとめる(朝5時前は前の日)', () => {
+    const logs = switchLogsInMonth(
+      [
+        log('a', null, new Date(2026, 9, 2, 4, 0)),
+        log('b', null, new Date(2026, 9, 2, 6, 0)),
+        log('c', null, new Date(2026, 9, 1, 23, 0)),
+      ],
+      '2026-10',
+    );
+    expect(groupSwitchLogsByDay(logs).map((day) => [day.logicalDate, day.logs.map((l) => l.id)])).toEqual([
+      ['2026-10-02', ['b']],
+      ['2026-10-01', ['a', 'c']],
+    ]);
+  });
+});
+
+describe('きっかけの名前', () => {
+  it('きっかけの並び順で出し、なければ「わからない」', () => {
+    expect(tagNamesOf({ tagIds: ['t-dream', 't-sound'] }, tags)).toEqual(['音', '夢']);
+    expect(tagNamesOf({ tagIds: [] }, tags)).toEqual(['わからない']);
+    expect(tagNamesOf({ tagIds: ['gone'] }, tags)).toEqual(['(不明なきっかけ)']);
+  });
+
+  it('最初のきっかけは決まった ID と並び順で作る', () => {
+    expect(buildInitialSwitchTags('x').map((t) => [t.id, t.name, t.order, t.hidden])).toEqual([
+      ['switch-tag-sound', '音', 0, false],
+      ['switch-tag-smell', 'におい', 1, false],
+      ['switch-tag-talk', '人との会話', 2, false],
+      ['switch-tag-fatigue', '疲れ', 3, false],
+      ['switch-tag-condition', '体調', 4, false],
+      ['switch-tag-dream', '夢', 5, false],
+    ]);
+  });
+});
+
+describe('1か月分の集計(SPEC.md 17.5)', () => {
+  const alters = [alter('B', 1), alter('A', 0), alter('C', 2, true)];
+
+  it('人格ごと・時間帯ごと・きっかけごとに数える', () => {
+    const logs = [
+      log('1', 'A', new Date(2026, 9, 2, 21, 0), ['t-sound']),
+      log('2', 'B', new Date(2026, 9, 3, 22, 30), ['t-sound', 't-dream']),
+      log('3', 'A', new Date(2026, 9, 4, 6, 0)),
+      // 非表示の人格も数える
+      log('4', 'C', new Date(2026, 9, 5, 2, 30), ['t-dream']),
+      // 「わからない」と、見つからない人格は「わからない」として最後に
+      log('5', null, new Date(2026, 9, 6, 21, 0)),
+      log('6', 'gone', new Date(2026, 9, 6, 22, 0), ['t-sound']),
+      // ほかの月は数えない
+      log('7', 'A', new Date(2026, 8, 30, 21, 0), ['t-sound']),
+    ];
+    const stats = buildSwitchStats({ logs, month: '2026-10', alters, tags });
+    const simple = (counts: { alter: Alter | null; count: number }[]) =>
+      counts.map((c) => [c.alter?.id ?? null, c.count]);
+
+    expect(stats.total).toBe(6);
+    expect(simple(stats.byAlter)).toEqual([
+      ['A', 2],
+      ['B', 1],
+      ['C', 1],
+      [null, 2],
+    ]);
+    expect(stats.byTime.map((row) => [row.label, row.total, simple(row.counts)])).toEqual([
+      ['5〜8時', 1, [['A', 1]]],
+      [
+        '20〜23時',
+        4,
+        [
+          ['A', 1],
+          ['B', 1],
+          [null, 2],
+        ],
+      ],
+      ['翌2〜5時', 1, [['C', 1]]],
+    ]);
+    // 2つのきっかけがある記録は両方に数える。きっかけなしは「わからない」として最後に
+    expect(stats.byTag.map((row) => [row.label, row.total, simple(row.counts)])).toEqual([
+      [
+        '音',
+        3,
+        [
+          ['A', 1],
+          ['B', 1],
+          [null, 1],
+        ],
+      ],
+      [
+        '夢',
+        2,
+        [
+          ['B', 1],
+          ['C', 1],
+        ],
+      ],
+      [
+        'わからない',
+        2,
+        [
+          ['A', 1],
+          [null, 1],
+        ],
+      ],
+    ]);
+  });
+
+  it('記録がない月は、どの欄も空', () => {
+    const stats = buildSwitchStats({ logs: [], month: '2026-10', alters, tags });
+    expect(stats).toEqual({ total: 0, byAlter: [], byTime: [], byTag: [] });
+  });
+});

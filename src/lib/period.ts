@@ -127,3 +127,30 @@ export function startOfLogicalDate(logicalDate: LogicalDate): Date {
 export function startOfLogicalMonth(logicalMonth: string): Date {
   return startOfLogicalDate(`${logicalMonth}-01`);
 }
+
+function pad2Clock(value: number): string {
+  return String(value).padStart(2, '0');
+}
+
+/**
+ * 日時入力(<input type="datetime-local">)に入れる値「2026-10-02T21:05」を作る(端末のローカル時刻。秒は切り捨て)。
+ * 交代の記録の「時間を指定」で使う(SPEC.md 17.1)
+ */
+export function toDateTimeLocalValue(date: Date): string {
+  return `${toCalendarDate(date)}T${pad2Clock(date.getHours())}:${pad2Clock(date.getMinutes())}`;
+}
+
+/** 日時入力の値「2026-10-02T21:05」を日時に戻す(端末のローカル時刻)。形が正しくなければ null */
+export function parseDateTimeLocal(value: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::\d{2}(?:\.\d+)?)?$/.exec(value);
+  if (!match) {
+    return null;
+  }
+  const [year, month, day, hour, minute] = match.slice(1, 6).map(Number);
+  const date = new Date(year, month - 1, day, hour, minute);
+  // 2月30日のような、ない日付は受け付けない
+  if (date.getMonth() !== month - 1 || date.getDate() !== day || date.getHours() !== hour) {
+    return null;
+  }
+  return date;
+}

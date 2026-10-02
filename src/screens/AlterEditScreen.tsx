@@ -101,7 +101,7 @@ export function AlterEditScreen({ alter, categories, onBack, onAdded, onDeleted 
           </button>
           {recordCount !== undefined && recordCount > 0 && (
             <p className="edit-actions__note">
-              完了記録・服薬記録・受診メモ・コメント・バケットのどれかがあるため削除できません。非表示にはできます。
+              完了記録・服薬記録・受診メモ・コメント・バケット・交代の記録のどれかがあるため削除できません。非表示にはできます。
             </p>
           )}
         </section>
