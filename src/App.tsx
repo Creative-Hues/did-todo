@@ -6,7 +6,10 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { TabBar, type TabKey } from './components/common/TabBar';
 import { UpdateNoticeBar } from './components/common/UpdateNoticeBar';
 import { SwitchRecordSheet } from './components/switch/SwitchRecordSheet';
+import { useLiveQuery } from './hooks/useLiveQuery';
 import { useUpdateNotice } from './hooks/useUpdateNotice';
+import { db } from './db/db';
+import { IntroScreen } from './screens/IntroScreen';
 import { AlterInfoScreen } from './screens/AlterInfoScreen';
 import { BucketScreen } from './screens/BucketScreen';
 import { ClinicNoteScreen } from './screens/ClinicNoteScreen';
@@ -38,6 +41,11 @@ function App() {
   const updateNotice = useUpdateNotice();
   // 「バックアップを書き出す」を押した回数(押すたびに、人格情報タブでバックアップ画面を開く)
   const [backupRequest, setBackupRequest] = useState(0);
+  // 「はじめに」(SPEC.md 14章⑤):人格が1人もいない間、開くたびに出す。閉じたら、この起動の間は出さない
+  const alterCount = useLiveQuery(() => db.alters.count());
+  const [introClosed, setIntroClosed] = useState(false);
+  // 「人格を登録する」を押した回数(押すたびに、人格情報タブで人格の追加の画面を開く)
+  const [addAlterRequest, setAddAlterRequest] = useState(0);
 
   // 「記録しました」は少したったら消す
   useEffect(() => {
@@ -81,7 +89,7 @@ function App() {
     }[medicationView],
     clinic: <ClinicNoteScreen />,
     bucket: <BucketScreen />,
-    alters: <AlterInfoScreen backupRequest={backupRequest} />,
+    alters: <AlterInfoScreen backupRequest={backupRequest} addAlterRequest={addAlterRequest} />,
   };
 
   return (
@@ -118,6 +126,16 @@ function App() {
         </p>
       )}
       <TabBar current={tab} onSelect={handleSelectTab} />
+      {alterCount === 0 && !introClosed && (
+        <IntroScreen
+          onAddAlter={() => {
+            setIntroClosed(true);
+            handleSelectTab('alters');
+            setAddAlterRequest((count) => count + 1);
+          }}
+          onClose={() => setIntroClosed(true)}
+        />
+      )}
       {switchNoticedAt !== null && (
         <SwitchRecordSheet
           noticedAt={switchNoticedAt}

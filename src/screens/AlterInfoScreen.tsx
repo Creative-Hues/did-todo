@@ -65,13 +65,20 @@ interface Props {
    * 増えるたびに、バックアップ画面を開く(0 のときは何もしない)
    */
   backupRequest?: number;
+  /** 「はじめに」の「人格を登録する」を押した回数(SPEC.md 14章⑤)。増えるたびに、人格の追加の画面を開く */
+  addAlterRequest?: number;
 }
 
-export function AlterInfoScreen({ backupRequest = 0 }: Props) {
+export function AlterInfoScreen({ backupRequest = 0, addAlterRequest = 0 }: Props) {
   const { print, printView, clearPrint } = usePrint();
   return (
     <>
-      <AlterInfoContent print={print} clearPrint={clearPrint} backupRequest={backupRequest} />
+      <AlterInfoContent
+        print={print}
+        clearPrint={clearPrint}
+        backupRequest={backupRequest}
+        addAlterRequest={addAlterRequest}
+      />
       {/* 印刷用の中身(画面には見えない。印刷のときだけ出る) */}
       {printView}
     </>
@@ -82,9 +89,10 @@ interface ContentProps {
   print: (content: PrintContent) => void;
   clearPrint: () => void;
   backupRequest: number;
+  addAlterRequest: number;
 }
 
-function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
+function AlterInfoContent({ print, clearPrint, backupRequest, addAlterRequest }: ContentProps) {
   const { t, term } = useTerm();
   const alters = useLiveQuery(() => db.alters.toArray());
   const categories = useLiveQuery(() => db.categories.toArray());
@@ -122,6 +130,14 @@ function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
       setView({ kind: 'backup' });
     }
   }, [backupRequest]);
+
+  // 「はじめに」の「人格を登録する」を押したら、人格の追加の画面を開く
+  useEffect(() => {
+    if (addAlterRequest > 0) {
+      pageScrollY.current = null;
+      setView({ kind: 'alterEdit', id: null });
+    }
+  }, [addAlterRequest]);
 
   // 別の画面に移ったら、前に印刷した中身を片付ける
   useEffect(() => {
