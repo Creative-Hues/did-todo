@@ -1,0 +1,25 @@
+[iphone] ok   はじめにが出る
+[iphone] ok   人格を登録する
+[iphone] ok   呼び方をメンバーにする
+[iphone] ok   自分で入力の呼び方
+[iphone] ok   服薬タブの注記
+[iphone] ok   交代の記録
+[iphone] ok   このアプリについて
+[iphone] ok   全員分のPDF
+[android] ok   はじめにが出る
+[android] ok   人格を登録する
+[android] ok   呼び方をメンバーにする
+[android] ok   自分で入力の呼び方
+[android] ok   服薬タブの注記
+[android] ok   交代の記録
+[android] ok   このアプリについて
+[android] ok   全員分のPDF
+[pc] ok   はじめにが出る
+[pc] ok   人格を登録する
+[pc] ok   呼び方をメンバーにする
+[pc] ok   自分で入力の呼び方
+[pc] ok   服薬タブの注記
+[pc] ok   交代の記録
+[pc] ok   このアプリについて
+[pc] ok   全員分のPDF
+done
