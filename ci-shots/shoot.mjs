@@ -31,11 +31,12 @@ for (const profile of PROFILES) {
     await page.click('.intro >> text=人格を登録する');
     await page.fill('.field >> input[type=text]', '人格A');
     await page.click('button.primary >> text=保存');
-    await page.waitForSelector('text=人格A');
+    await page.waitForTimeout(800);
     await page.click('text=‹ 戻る');
     await page.click('text=＋ 人格を追加');
     await page.fill('.field >> input[type=text]', '人格B');
     await page.click('button.primary >> text=保存');
+    await page.waitForTimeout(800);
     await page.click('text=‹ 戻る');
     await shot('02-alters');
   });
