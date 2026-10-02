@@ -1,6 +1,7 @@
 // 画面下のタブバー(SPEC.md 5章)。アイコン+文字で、今いるタブは色で区別する
 // アイコンは外部から読み込まず、SVG をここに直接書く
 import type { ReactNode } from 'react';
+import { useTerm } from '../../hooks/useTerm';
 
 export type TabKey = 'todo' | 'medication' | 'clinic' | 'bucket' | 'alters';
 
@@ -91,6 +92,7 @@ interface Props {
 }
 
 export function TabBar({ current, onSelect }: Props) {
+  const { t } = useTerm();
   return (
     <nav className="tab-bar" aria-label="画面の切り替え">
       {TABS.map((tab) => (
@@ -102,7 +104,7 @@ export function TabBar({ current, onSelect }: Props) {
           onClick={() => onSelect(tab.key)}
         >
           {tab.icon}
-          <span className="tab-bar__label">{tab.label}</span>
+          <span className="tab-bar__label">{t(tab.label)}</span>
         </button>
       ))}
     </nav>

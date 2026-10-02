@@ -5,6 +5,7 @@ import { mergeCareAlterIds } from '../../lib/careAlters';
 import { cycleLabel } from '../../lib/cycleLabel';
 import { normalizeName, parseEveryNDays } from '../../lib/validation';
 import type { Alter, Cycle, Task } from '../../lib/types';
+import { useTerm } from '../../hooks/useTerm';
 
 type CycleType = Cycle['type'];
 
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function TaskForm({ initial, selectableAlters, onSubmit, onCancel }: Props) {
+  const { t } = useTerm();
   const selectableIds = selectableAlters.map((alter) => alter.id);
   const [name, setName] = useState(initial?.name ?? '');
   const [cycleType, setCycleType] = useState<CycleType>(initial?.cycle.type ?? 'daily');
@@ -96,8 +98,8 @@ export function TaskForm({ initial, selectableAlters, onSubmit, onCancel }: Prop
       </fieldset>
 
       <fieldset className="field">
-        <legend>気にしている人格</legend>
-        {selectableAlters.length === 0 && <p className="empty">表示中の人格がいません</p>}
+        <legend>{t('気にしている人格')}</legend>
+        {selectableAlters.length === 0 && <p className="empty">{t('表示中の人格がいません')}</p>}
         {selectableAlters.map((alter) => (
           <label key={alter.id} className="choice">
             <input type="checkbox" checked={selected.includes(alter.id)} onChange={() => toggleAlter(alter.id)} />

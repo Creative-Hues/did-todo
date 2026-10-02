@@ -3,6 +3,7 @@
 import { PrintOverflowNotice } from '../components/print/PrintOverflowNotice';
 import { QuickTable } from '../components/profile/QuickTable';
 import type { PrintContent, QuickTableRow } from '../lib/alterInfo';
+import { useTerm } from '../hooks/useTerm';
 
 interface Props {
   rows: QuickTableRow[];
@@ -13,6 +14,7 @@ interface Props {
 }
 
 export function QuickTableScreen({ rows, onBack, onPrint, printPreview }: Props) {
+  const { t } = useTerm();
   return (
     <main className="app">
       <header className="screen-header">
@@ -26,7 +28,7 @@ export function QuickTableScreen({ rows, onBack, onPrint, printPreview }: Props)
       </header>
       {rows.length > 0 && <PrintOverflowNotice content={printPreview} part="quickTable" label="早見表" />}
       {rows.length === 0 ? (
-        <p className="empty">人格がまだ登録されていません</p>
+        <p className="empty">{t('人格がまだ登録されていません')}</p>
       ) : (
         // 画面の横幅に入らないときは、表だけを横にスクロールする
         <div className="quick-table-scroll">

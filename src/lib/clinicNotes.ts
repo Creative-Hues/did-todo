@@ -3,6 +3,7 @@
 import { UNKNOWN_ALTER_NAME, resolveRecordAlter } from './completionLabel';
 import { formatCalendarDateSlash } from './timeFormat';
 import type { Alter, ClinicNote, ClinicNoteCategory, ClinicNoteComment } from './types';
+import { DEFAULT_TERM, withTerm } from './term';
 
 /** 入力のヒント(SPEC.md 8.1) */
 export const CLINIC_NOTE_HINT = 'いつから・どのくらい・何に困っているか';
@@ -47,10 +48,12 @@ export function authorHeading(
   alterId: string | null,
   kind: AuthoredKind,
   alterById: ReadonlyMap<string, Alter>,
+  /** 「人格」の呼び方(SPEC.md 14章③) */
+  term: string = DEFAULT_TERM,
 ): { alter: { name: string; color: string } | null; text: string } {
   const alter = alterId === null ? undefined : alterById.get(alterId);
   if (!alter) {
-    return { alter: null, text: '書いた人格:わからない' };
+    return { alter: null, text: withTerm('書いた人格:わからない', term) };
   }
   return { alter: { name: alter.name, color: alter.color }, text: `${alter.name}が書いた${kind}` };
 }
@@ -65,9 +68,12 @@ export function deleteConfirmMessage(
   kind: AuthoredKind,
   alterById: ReadonlyMap<string, Alter>,
   commentCount = 0,
+  /** 「人格」の呼び方(SPEC.md 14章③) */
+  term: string = DEFAULT_TERM,
 ): string {
   const alter = alterId === null ? undefined : alterById.get(alterId);
-  const target = alter ? `${alter.name}が書いた${kind}` : `書いた人格がわからない${kind}`;
+  // 名前を入れる前の決まった文だけを、呼び方に置き換える(名前は置き換えない)
+  const target = alter ? `${alter.name}が書いた${kind}` : `${withTerm('書いた人格がわからない', term)}${kind}`;
   const comments = commentCount > 0 ? `コメント${commentCount}件も一緒に削除されます。` : '';
   return `${target}を削除しますか?${comments}`;
 }

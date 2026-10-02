@@ -4,8 +4,14 @@ import type { Alter, AlterCategory, ClinicNoteCategory, ProfileSection } from '.
 /** 最初の区分(SPEC.md 10.2) */
 const INITIAL_CATEGORY_NAMES = ['主人格', 'よく前に出る', '状況によって出る', '最近出現・詳細確認中'];
 
-/** 最初の受診メモの分類(SPEC.md 8.1) */
+/** 最初の受診メモの分類(SPEC.md 8.1)。版2に上げたとき(すでに使っている人)に入れたもの */
 const INITIAL_CLINIC_NOTE_CATEGORY_NAMES = ['体調', '薬', '睡眠', '気分', '人格のこと', '生活', 'その他'];
+
+/**
+ * 新しくインストールしたときの最初の受診メモの分類(SPEC.md 14章③)。
+ * 分類の名前は利用者のデータとして保存され、呼び方に合わせて変わらないので、呼び方を使わない名前にする
+ */
+const NEW_INSTALL_CLINIC_NOTE_CATEGORY_NAMES = ['体調', '薬', '睡眠', '気分', '交代のこと', '生活', 'その他'];
 
 /** 新しい人格に最初から入れるプロフィールの見出し(SPEC.md 10.4)。「経緯」だけ「自分たちだけ」 */
 const DEFAULT_PROFILE_TITLES = ['機能・役割', '特徴', '記憶', '身体・感覚', '対応のお願い', '交代の傾向', '経緯', 'その他'];
@@ -25,6 +31,10 @@ export function buildInitialCategories(now: Date, newId: () => string): AlterCat
 
 export function buildInitialClinicNoteCategories(now: Date, newId: () => string): ClinicNoteCategory[] {
   return buildNamedItems(INITIAL_CLINIC_NOTE_CATEGORY_NAMES, now, newId);
+}
+
+export function buildNewInstallClinicNoteCategories(now: Date, newId: () => string): ClinicNoteCategory[] {
+  return buildNamedItems(NEW_INSTALL_CLINIC_NOTE_CATEGORY_NAMES, now, newId);
 }
 
 /** 見出しの一覧から、中身が空の見出しを並び順どおりに作る */

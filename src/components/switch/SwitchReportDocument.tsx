@@ -13,6 +13,7 @@ import {
 } from '../../lib/switchLog';
 import type { Alter, SwitchLog, SwitchTag } from '../../lib/types';
 import { UNKNOWN_SEGMENT_COLOR } from './SwitchStatsView';
+import { useTerm } from '../../hooks/useTerm';
 
 /** 書き出しの注記(SPEC.md 17.6) */
 export const SWITCH_REPORT_NOTE = '時刻は、交代した時刻がわからないときは、交代に気づいた時刻です(目安です)。';
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function SwitchReportDocument({ month, stats, logs, alters, tags, createdAt }: Props) {
+  const { t } = useTerm();
   const days = groupSwitchLogsByDay(switchLogsInMonth(logs, month));
   return (
     <div className="print-doc switch-report">
@@ -38,7 +40,9 @@ export function SwitchReportDocument({ month, stats, logs, alters, tags, created
       </header>
 
       <section className="print-part">
-        <h2>人格ごと(全{countText(stats.total)})</h2>
+        <h2>
+          {t('人格ごと')}(全{countText(stats.total)})
+        </h2>
         <table className="switch-report__table">
           <tbody>
             {stats.byAlter.map((item) => (

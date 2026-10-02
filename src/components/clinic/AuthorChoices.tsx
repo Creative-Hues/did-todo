@@ -3,6 +3,7 @@
 import { UNKNOWN_ALTER_NAME } from '../../lib/completionLabel';
 import type { AuthorSelection } from '../../lib/clinicNotes';
 import type { Alter } from '../../lib/types';
+import { useTerm } from '../../hooks/useTerm';
 
 interface Props {
   /** 選択肢に出す人格(selectableAuthors で作ったもの) */
@@ -12,9 +13,10 @@ interface Props {
 }
 
 export function AuthorChoices({ alters, selection, onChange }: Props) {
+  const { t } = useTerm();
   return (
     <fieldset className="field">
-      <legend>書いた人格</legend>
+      <legend>{t('書いた人格')}</legend>
       {alters.map((alter) => (
         <label key={alter.id} className="choice">
           <input

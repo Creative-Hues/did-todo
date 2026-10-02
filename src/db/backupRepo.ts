@@ -1,6 +1,7 @@
 // バックアップ用のデータの読み出し・置き換え(SPEC.md 12章)
 import type { AppDatabase } from './db';
-import type { BackupData } from '../lib/backup';
+import type { BackupData, BackupSettings } from '../lib/backup';
+import { getAltersTerm, setAltersTerm } from './settingsRepo';
 
 /** バックアップの対象のテーブル(端末の設定 meta は入れない) */
 function backupTables(database: AppDatabase) {
@@ -44,13 +45,22 @@ export async function readAllData(database: AppDatabase): Promise<BackupData> {
   }));
 }
 
+/** バックアップに入れる端末の設定(呼び方)を読む(SPEC.md 14章③) */
+export async function readBackupSettings(database: AppDatabase): Promise<BackupSettings> {
+  return { altersTerm: await getAltersTerm(database) };
+}
+
 /**
  * 今のデータをすべて消し、バックアップの中身に置き換える。
  * 1つのトランザクション(まとめて1回の処理)で行うので、途中で失敗したら何も変わらない。
- * 端末の設定(最後に書き出した日時)は置き換えない。
+ * 端末の設定のうち、最後に書き出した日時・集計の表示は置き換えない。
+ * settings を渡したときは、呼び方も一緒に置き換える
  */
-export async function replaceAllData(database: AppDatabase, data: BackupData): Promise<void> {
-  await database.transaction('rw', backupTables(database), async () => {
+export async function replaceAllData(database: AppDatabase, data: BackupData, settings?: BackupSettings): Promise<void> {
+  await database.transaction('rw', [...backupTables(database), database.meta], async () => {
+    if (settings) {
+      await setAltersTerm(database, settings.altersTerm);
+    }
     await Promise.all(backupTables(database).map((table) => table.clear()));
     await database.alters.bulkAdd(data.alters);
     await database.categories.bulkAdd(data.categories);

@@ -24,6 +24,7 @@ import {
   buildInitialCategories,
   buildInitialClinicNoteCategories,
   buildMissingProfileSections,
+  buildNewInstallClinicNoteCategories,
   upgradeAlterToV2,
   type AlterV1,
 } from './initialData';
@@ -93,10 +94,13 @@ export class AppDatabase extends Dexie {
     this.version(6)
       .stores({ switchTags: 'id, order', switchLogs: 'id, alterId, noticedAt' })
       .upgrade((tx) => addInitialSwitchTags(tx, new Date()));
-    // 新しく入れたとき(版1〜6の upgrade を通らない)も、同じ最初のデータを入れる
+    // 新しく入れたとき(版1〜6の upgrade を通らない)の最初のデータ
+    // 区分は空で始め、受診メモの分類は呼び方を使わない名前にする(SPEC.md 14章③)
     this.on('populate', async (tx) => {
       const now = new Date();
-      await addInitialData(tx, now);
+      await tx
+        .table<ClinicNoteCategory, string>('clinicNoteCategories')
+        .bulkAdd(buildNewInstallClinicNoteCategories(now, () => crypto.randomUUID()));
       await addInitialMedicationTimings(tx, now);
       await addMissingProfileSections(tx, now);
       await addInitialSwitchTags(tx, now);

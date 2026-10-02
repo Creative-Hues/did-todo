@@ -2,7 +2,7 @@
 import 'fake-indexeddb/auto';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from './db';
-import { getLastExportedAt, readAllData, replaceAllData, setLastExportedAt } from './backupRepo';
+import { getLastExportedAt, readAllData, readBackupSettings, replaceAllData, setLastExportedAt } from './backupRepo';
 import { buildBackup, parseBackup, serializeBackup, type BackupData } from '../lib/backup';
 import { BACKUP_TABLE_NAMES } from '../lib/backupSchema';
 import { buildInitialMedicationTimings } from '../lib/medicationTimings';
@@ -211,6 +211,14 @@ describe('バックアップの書き出しと読み込み', () => {
 
     await expect(replaceAllData(database, broken)).rejects.toThrow();
     expect(sortById(await readAllData(database))).toEqual(sortById(fullData()));
+  });
+
+  it('呼び方は、設定を渡したときだけ読み込みで置き換わる(SPEC.md 14章③)', async () => {
+    expect(await readBackupSettings(database)).toEqual({ altersTerm: '人格' });
+    await replaceAllData(database, fullData(), { altersTerm: 'パーツ' });
+    expect(await readBackupSettings(database)).toEqual({ altersTerm: 'パーツ' });
+    await replaceAllData(database, fullData());
+    expect(await readBackupSettings(database)).toEqual({ altersTerm: 'パーツ' });
   });
 
   it('最後に書き出した日時は、読み込みで置き換わらない', async () => {

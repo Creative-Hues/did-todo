@@ -13,6 +13,7 @@ import {
   statsMonthLabel,
   type AlterCount,
 } from '../../lib/stats';
+import { useTerm } from '../../hooks/useTerm';
 
 interface Props {
   alterId: string;
@@ -67,6 +68,7 @@ export function AlterStatsSection({ alterId, month, onChangeMonth }: Props) {
 }
 
 function StatsBody({ stats }: { stats: ReturnType<typeof buildAlterStats> }) {
+  const { t } = useTerm();
   // 全部の項目が0回の月は、欄を出さずにこの文だけを出す
   if (isStatsEmpty(stats)) {
     return <p className="empty">{EMPTY_TEXT}</p>;
@@ -80,7 +82,7 @@ function StatsBody({ stats }: { stats: ReturnType<typeof buildAlterStats> }) {
   return (
     <>
       <div className="stats-card">
-        <h3>この人格がしたこと</h3>
+        <h3>{t('この人格がしたこと')}</h3>
         {lines.length === 0 ? (
           <p className="empty">{EMPTY_TEXT}</p>
         ) : (
@@ -95,7 +97,7 @@ function StatsBody({ stats }: { stats: ReturnType<typeof buildAlterStats> }) {
         )}
       </div>
       <div className="stats-card">
-        <h3>この人格のためにしてくれたこと</h3>
+        <h3>{t('この人格のためにしてくれたこと')}</h3>
         {received.length === 0 ? (
           <p className="empty">{EMPTY_TEXT}</p>
         ) : (

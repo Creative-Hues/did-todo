@@ -16,6 +16,7 @@ import {
 } from '../lib/clinicNotes';
 import { showSaveError } from '../lib/showError';
 import type { Alter, ClinicNote, ClinicNoteCategory, ClinicNoteComment } from '../lib/types';
+import { useTerm } from '../hooks/useTerm';
 
 interface Props {
   /** どのメモへのコメントか(画面の上に小さく出す) */
@@ -28,6 +29,7 @@ interface Props {
 }
 
 export function ClinicNoteCommentEditScreen({ note, comment, alters, categories, onBack }: Props) {
+  const { t, term } = useTerm();
   const [author, setAuthor] = useState<AuthorSelection>(comment ? { alterId: comment.alterId } : null);
   const [body, setBody] = useState(comment?.body ?? '');
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +82,7 @@ export function ClinicNoteCommentEditScreen({ note, comment, alters, categories,
           <span>内容</span>
           <textarea className="note-textarea" value={body} onChange={(event) => setBody(event.target.value)} />
         </label>
-        {error && <p className="form-error">{error}</p>}
+        {error && <p className="form-error">{t(error)}</p>}
         <div className="form-buttons">
           <button type="button" onClick={onBack}>
             キャンセル
@@ -99,7 +101,7 @@ export function ClinicNoteCommentEditScreen({ note, comment, alters, categories,
       )}
       {comment && confirmingDelete && (
         <ConfirmDialog
-          message={deleteConfirmMessage(comment.alterId, 'コメント', alterById)}
+          message={deleteConfirmMessage(comment.alterId, 'コメント', alterById, 0, term)}
           confirmLabel="削除する"
           onConfirm={() => handleDelete(comment)}
           onCancel={() => setConfirmingDelete(false)}

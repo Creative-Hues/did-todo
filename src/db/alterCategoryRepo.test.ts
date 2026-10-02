@@ -10,13 +10,16 @@ import {
   reorderAlterCategories,
 } from './alterCategoryRepo';
 import { addAlter, setAlterHidden } from './alterRepo';
+import { buildInitialCategories } from './initialData';
 
 describe('人格の区分の保存(SPEC.md 10.2)', () => {
   let database: AppDatabase;
   const now = new Date(2026, 8, 28, 9, 0);
 
-  beforeEach(() => {
+  // 新しくインストールしたときは区分が空なので(SPEC.md 14章③)、すでに使っている人と同じ最初の4つを入れておく
+  beforeEach(async () => {
     database = new AppDatabase('did-todo-test-alter-categories');
+    await database.categories.bulkAdd(buildInitialCategories(now, () => crypto.randomUUID()));
   });
 
   afterEach(async () => {

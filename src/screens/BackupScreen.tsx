@@ -2,9 +2,10 @@
 import { useRef, useState, type ChangeEvent } from 'react';
 import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import { db } from '../db/db';
-import { getLastExportedAt, readAllData, replaceAllData, setLastExportedAt } from '../db/backupRepo';
+import { getLastExportedAt, readAllData, readBackupSettings, replaceAllData, setLastExportedAt } from '../db/backupRepo';
 import { useLiveQuery } from '../hooks/useLiveQuery';
 import { useNow } from '../hooks/useNow';
+import { useTerm } from '../hooks/useTerm';
 import {
   backupFileName,
   backupReminderText,
@@ -29,17 +30,19 @@ export function BackupScreen({ onBack }: Props) {
   // 書き出すデータは先に読んでおく。iPhone では、ボタンを押してから共有シートを開くまでに
   // 時間がかかると共有が拒否されるため、押した瞬間にすぐファイルを作れるようにする
   const currentData = useLiveQuery(() => readAllData(db));
+  const currentSettings = useLiveQuery(() => readBackupSettings(db));
+  const { t } = useTerm();
   const fileInput = useRef<HTMLInputElement>(null);
   const [pendingImport, setPendingImport] = useState<BackupFile | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
 
   const handleExport = async () => {
-    if (!currentData) {
+    if (!currentData || !currentSettings) {
       return;
     }
     setNotice(null);
     const exportedAt = new Date();
-    const file = new File([serializeBackup(buildBackup(currentData, exportedAt))], backupFileName(exportedAt), {
+    const file = new File([serializeBackup(buildBackup(currentData, exportedAt, currentSettings))], backupFileName(exportedAt), {
       type: 'application/json',
     });
     try {
@@ -76,14 +79,15 @@ export function BackupScreen({ onBack }: Props) {
     if (result.ok) {
       setPendingImport(result.backup);
     } else {
-      setNotice({ kind: 'error', text: `読み込めませんでした:${result.reason}` });
+      // 理由の文には利用者が付けた名前が入らないので、呼び方に置き換えてよい
+      setNotice({ kind: 'error', text: `読み込めませんでした:${t(result.reason)}` });
     }
   };
 
   const handleImport = async (backup: BackupFile) => {
     setPendingImport(null);
     try {
-      await replaceAllData(db, backup.data);
+      await replaceAllData(db, backup.data, backup.settings);
       setNotice({ kind: 'success', text: 'バックアップを読み込みました' });
     } catch (error) {
       console.error('バックアップの読み込みに失敗しました', error);
@@ -110,7 +114,7 @@ export function BackupScreen({ onBack }: Props) {
           {lastExportedAt === undefined ? '…' : lastExportedAt === null ? 'まだありません' : formatDateTime(lastExportedAt)}
         </p>
         {reminder && <p className="backup-reminder">{reminder}</p>}
-        <button type="button" className="add-button" disabled={!currentData} onClick={handleExport}>
+        <button type="button" className="add-button" disabled={!currentData || !currentSettings} onClick={handleExport}>
           書き出す
         </button>
       </section>

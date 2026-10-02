@@ -1,6 +1,7 @@
 // バックアップの書き出し・読み込みの中身づくり(SPEC.md 12章)。純粋関数。
 import { parseBackupData, type BackupData } from './backupSchema';
 import { diffLogicalDays, toCalendarDate, toLogicalDate } from './period';
+import { DEFAULT_TERM, normalizeTerm } from './term';
 
 export type { BackupData } from './backupSchema';
 
@@ -19,6 +20,18 @@ export const BACKUP_FORMAT_VERSION = 1;
 /** 書き出しをすすめるまでの日数 */
 export const BACKUP_REMIND_DAYS = 30;
 
+/**
+ * バックアップに入れる端末の設定(SPEC.md 12章・14章③)。
+ * 端末の設定はふつうバックアップに入れないが、呼び方だけは URL の引っ越しで戻らないよう入れる
+ */
+export interface BackupSettings {
+  /** 「人格」の呼び方 */
+  altersTerm: string;
+}
+
+/** 呼び方が入っていない古いバックアップのときの設定 */
+export const DEFAULT_BACKUP_SETTINGS: BackupSettings = { altersTerm: DEFAULT_TERM };
+
 /** バックアップファイルの中身 */
 export interface BackupFile {
   app: typeof APP_ID;
@@ -26,10 +39,32 @@ export interface BackupFile {
   /** 書き出した日時(ISO形式) */
   exportedAt: string;
   data: BackupData;
+  /** 端末の設定のうち、バックアップに入れるもの(フェーズ14で追加。ない古いファイルは「人格」として読み込む) */
+  settings: BackupSettings;
 }
 
-export function buildBackup(data: BackupData, now: Date): BackupFile {
-  return { app: APP_ID, formatVersion: BACKUP_FORMAT_VERSION, exportedAt: now.toISOString(), data };
+export function buildBackup(
+  data: BackupData,
+  now: Date,
+  settings: BackupSettings = DEFAULT_BACKUP_SETTINGS,
+): BackupFile {
+  return { app: APP_ID, formatVersion: BACKUP_FORMAT_VERSION, exportedAt: now.toISOString(), data, settings };
+}
+
+/** ファイルの settings を読み取る。ないときは最初の設定、形が正しくなければ null */
+function parseSettings(value: unknown): BackupSettings | null {
+  if (value === undefined) {
+    return DEFAULT_BACKUP_SETTINGS;
+  }
+  if (typeof value !== 'object' || value === null) {
+    return null;
+  }
+  const { altersTerm } = value as { altersTerm?: unknown };
+  if (altersTerm === undefined) {
+    return DEFAULT_BACKUP_SETTINGS;
+  }
+  const term = typeof altersTerm === 'string' ? normalizeTerm(altersTerm) : null;
+  return term === null ? null : { altersTerm: term };
 }
 
 /** バックアップを JSON の文字列にする */
@@ -55,7 +90,7 @@ export function parseBackup(text: string): ParseBackupResult {
   if (typeof json !== 'object' || json === null || (json as { app?: unknown }).app !== APP_ID) {
     return { ok: false, reason: 'このアプリのバックアップファイルではありません' };
   }
-  const { formatVersion, exportedAt, data } = json as Record<string, unknown>;
+  const { formatVersion, exportedAt, data, settings: rawSettings } = json as Record<string, unknown>;
   if (formatVersion !== BACKUP_FORMAT_VERSION) {
     return {
       ok: false,
@@ -69,7 +104,11 @@ export function parseBackup(text: string): ParseBackupResult {
   if (typeof parsed === 'string') {
     return { ok: false, reason: parsed };
   }
-  return { ok: true, backup: { app: APP_ID, formatVersion, exportedAt, data: parsed } };
+  const settings = parseSettings(rawSettings);
+  if (settings === null) {
+    return { ok: false, reason: '呼び方の設定が正しくありません' };
+  }
+  return { ok: true, backup: { app: APP_ID, formatVersion, exportedAt, data: parsed, settings } };
 }
 
 /**

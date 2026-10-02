@@ -10,6 +10,7 @@ import {
 } from '../../lib/clinicNotes';
 import type { Alter, ClinicNote, ClinicNoteCategory } from '../../lib/types';
 import { AuthorChoices } from './AuthorChoices';
+import { useTerm } from '../../hooks/useTerm';
 
 interface Props {
   /** 編集するときの元のメモ(新しく書くときは undefined) */
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function ClinicNoteForm({ initial, alters, categories, onSubmit, onCancel }: Props) {
+  const { t } = useTerm();
   const [author, setAuthor] = useState<AuthorSelection>(initial ? { alterId: initial.alterId } : null);
   const [categoryId, setCategoryId] = useState<string | null>(initial?.categoryId ?? null);
   const [body, setBody] = useState(initial?.body ?? '');
@@ -70,7 +72,7 @@ export function ClinicNoteForm({ initial, alters, categories, onSubmit, onCancel
       </button>
       {showingHint && <p className="settings-note">{CLINIC_NOTE_HINT}</p>}
 
-      {error && <p className="form-error">{error}</p>}
+      {error && <p className="form-error">{t(error)}</p>}
       <div className="form-buttons">
         <button type="button" onClick={onCancel}>
           キャンセル

@@ -226,7 +226,8 @@ export interface AppMeta {
   /**
    * - lastBackupExportedAt:バックアップを最後に書き出した日時(ISO形式)
    * - showStats:人格ごとのページに集計を表示するか('on' / 'off'。ないときはオフ。SPEC.md 11章)
+   * - altersTerm:「人格」の呼び方(ないときは「人格」。SPEC.md 14章③)。端末の設定だが、バックアップには入れる
    */
-  key: 'lastBackupExportedAt' | 'showStats';
+  key: 'lastBackupExportedAt' | 'showStats' | 'altersTerm';
   value: string;
 }

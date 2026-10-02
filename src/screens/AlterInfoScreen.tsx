@@ -3,6 +3,7 @@
 // 人格の行をタップすると人格ごとのページ(10.3)が開き、そこから各編集画面を開く
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AlterList } from '../components/settings/AlterList';
+import { TermSettings } from '../components/settings/TermSettings';
 import { db } from '../db/db';
 import { getLastExportedAt } from '../db/backupRepo';
 import { getShowStats, setShowStats } from '../db/settingsRepo';
@@ -29,6 +30,7 @@ import { CommonInfoScreen } from './CommonInfoScreen';
 import { ProfileSectionEditScreen } from './ProfileSectionEditScreen';
 import { QuickTableScreen } from './QuickTableScreen';
 import { SwitchLogScreen } from './SwitchLogScreen';
+import { useTerm } from '../hooks/useTerm';
 
 /**
  * 表示中の画面
@@ -80,6 +82,7 @@ interface ContentProps {
 }
 
 function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
+  const { t, term } = useTerm();
   const alters = useLiveQuery(() => db.alters.toArray());
   const categories = useLiveQuery(() => db.categories.toArray());
   const sections = useLiveQuery(() => db.profileSections.toArray());
@@ -173,7 +176,7 @@ function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
           onOpenSection={(section) => openFromPage({ kind: 'section', ownerId: null, sectionId: section.id })}
           onAddSection={() => openFromPage({ kind: 'section', ownerId: null, sectionId: null })}
           // 全員分の PDF の1ページ目(表題・作成日と全体のこと)だけを測る
-          printPreview={{ ...buildAllPrint(alters, categories, sections, new Date()), quickTable: null, alterPages: [] }}
+          printPreview={{ ...buildAllPrint(alters, categories, sections, new Date(), term), quickTable: null, alterPages: [] }}
         />
       );
     case 'page': {
@@ -253,13 +256,13 @@ function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
   return (
     <main className="app">
       <header className="screen-header">
-        <h1>人格情報</h1>
+        <h1>{t('人格情報')}</h1>
       </header>
       <div className="alter-info-actions">
         <button type="button" onClick={() => open({ kind: 'quickTable' })}>
           早見表
         </button>
-        <button type="button" onClick={() => print(buildAllPrint(alters, categories, sections, new Date()))}>
+        <button type="button" onClick={() => print(buildAllPrint(alters, categories, sections, new Date(), term))}>
           全員分をPDFに
         </button>
       </div>
@@ -280,6 +283,8 @@ function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
           区分の設定
         </button>
       </section>
+      {/* 「人格」の呼び方(SPEC.md 14章③) */}
+      <TermSettings />
       {/* 交代の記録(SPEC.md 17.4)。記録は「変わったことに気づいた」ボタンから */}
       <section className="settings-section">
         <h2>交代の記録</h2>
@@ -297,7 +302,7 @@ function AlterInfoContent({ print, clearPrint, backupRequest }: ContentProps) {
               checked={showStats}
               onChange={(event) => setShowStats(db, event.target.checked).catch(showSaveError)}
             />
-            人格ごとのページに集計を表示する
+            {t('人格ごとのページに集計を表示する')}
           </label>
         </section>
       )}

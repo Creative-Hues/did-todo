@@ -6,6 +6,7 @@ import { groupAltersByCategory } from '../../lib/alterInfo';
 import type { Alter, AlterCategory } from '../../lib/types';
 import { SortableList } from '../common/SortableList';
 import { ItemRow } from './ItemRow';
+import { useTerm } from '../../hooks/useTerm';
 
 interface Props {
   alters: Alter[];
@@ -15,6 +16,7 @@ interface Props {
 }
 
 export function AlterList({ alters, categories, onAdd, onOpen }: Props) {
+  const { t } = useTerm();
   const { groups, hidden } = groupAltersByCategory(alters, categories);
 
   const renderRow = (alter: Alter) => (
@@ -28,8 +30,8 @@ export function AlterList({ alters, categories, onAdd, onOpen }: Props) {
 
   return (
     <section className="settings-section">
-      <h2>人格</h2>
-      {groups.length === 0 && <p className="empty">人格がまだ登録されていません</p>}
+      <h2>{t('人格')}</h2>
+      {groups.length === 0 && <p className="empty">{t('人格がまだ登録されていません')}</p>}
       {groups.map((group) => (
         <div key={group.categoryId ?? 'uncategorized'} className="alter-group">
           <h3 className="alter-group__heading">{group.name}</h3>
@@ -43,11 +45,11 @@ export function AlterList({ alters, categories, onAdd, onOpen }: Props) {
         </div>
       ))}
       <button type="button" className="add-button" onClick={onAdd}>
-        ＋ 人格を追加
+        {t('＋ 人格を追加')}
       </button>
       {hidden.length > 0 && (
         <>
-          <h3 className="hidden-heading">非表示の人格</h3>
+          <h3 className="hidden-heading">{t('非表示の人格')}</h3>
           {/* 非表示の一覧は並び替えない */}
           <ul className="item-list">
             {hidden.map((alter) => (

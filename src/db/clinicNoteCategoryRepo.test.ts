@@ -28,10 +28,10 @@ describe('受診メモの分類の保存(SPEC.md 8.1)', () => {
     (await database.clinicNoteCategories.toArray()).find((c) => c.name === name)?.id ?? '';
 
   it('最初の7つのあとに追加され、同じ名前は追加できない', async () => {
-    expect(await names()).toEqual(['体調', '薬', '睡眠', '気分', '人格のこと', '生活', 'その他']);
+    expect(await names()).toEqual(['体調', '薬', '睡眠', '気分', '交代のこと', '生活', 'その他']);
     expect((await addClinicNoteCategory(database, '仕事', now)).ok).toBe(true);
     expect(await addClinicNoteCategory(database, '体調', now)).toEqual({ ok: false, reason: 'duplicateName' });
-    expect(await names()).toEqual(['体調', '薬', '睡眠', '気分', '人格のこと', '生活', 'その他', '仕事']);
+    expect(await names()).toEqual(['体調', '薬', '睡眠', '気分', '交代のこと', '生活', 'その他', '仕事']);
   });
 
   it('名前を変えられる。ほかと同じ名前には変えられないが、自分と同じ名前は保存できる', async () => {
@@ -59,6 +59,6 @@ describe('受診メモの分類の保存(SPEC.md 8.1)', () => {
     expect(await deleteClinicNoteCategory(database, health)).toBe(false);
     expect(await countClinicNoteCategoryUsage(database, other)).toBe(0);
     expect(await deleteClinicNoteCategory(database, other)).toBe(true);
-    expect(await names()).toEqual(['体調', '薬', '睡眠', '気分', '人格のこと', '生活']);
+    expect(await names()).toEqual(['体調', '薬', '睡眠', '気分', '交代のこと', '生活']);
   });
 });

@@ -10,6 +10,7 @@ import { useLiveQuery } from '../hooks/useLiveQuery';
 import { deleteConfirmMessage, type ClinicNoteInput } from '../lib/clinicNotes';
 import { showSaveError } from '../lib/showError';
 import type { Alter, ClinicNote, ClinicNoteCategory } from '../lib/types';
+import { useTerm } from '../hooks/useTerm';
 
 interface Props {
   /** 編集するメモ(新しく書くときは undefined) */
@@ -20,6 +21,7 @@ interface Props {
 }
 
 export function ClinicNoteEditScreen({ note, alters, categories, onBack }: Props) {
+  const { term } = useTerm();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // 削除の確認文に「コメント○件も一緒に削除されます」を出すため
   const commentCount = useLiveQuery(
@@ -75,7 +77,7 @@ export function ClinicNoteEditScreen({ note, alters, categories, onBack }: Props
       )}
       {note && confirmingDelete && (
         <ConfirmDialog
-          message={deleteConfirmMessage(note.alterId, 'メモ', alterById, commentCount ?? 0)}
+          message={deleteConfirmMessage(note.alterId, 'メモ', alterById, commentCount ?? 0, term)}
           confirmLabel="削除する"
           onConfirm={() => handleDelete(note)}
           onCancel={() => setConfirmingDelete(false)}

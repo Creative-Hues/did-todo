@@ -22,6 +22,7 @@ import { showSaveError } from '../lib/showError';
 import type { BucketItem } from '../lib/types';
 import { BucketHelperScreen } from './BucketHelperScreen';
 import { BucketItemEditScreen } from './BucketItemEditScreen';
+import { useTerm } from '../hooks/useTerm';
 
 /** 項目の編集画面(id が null なら追加) */
 type ItemView = { kind: 'item'; ownerId: string; id: string | null };
@@ -33,6 +34,7 @@ type ItemView = { kind: 'item'; ownerId: string; id: string | null };
 type View = { kind: 'list' } | ItemView | { kind: 'helpers'; ownerId: string; id: string; returnTo: View };
 
 export function BucketScreen() {
+  const { t } = useTerm();
   const alters = useLiveQuery(() => db.alters.toArray());
   const items = useLiveQuery(() => db.bucketItems.toArray());
   // 選んだ人格のID(まだ選んでいなければ null。表示するのは resolveSelectedOwner で決めた人格)
@@ -111,7 +113,7 @@ export function BucketScreen() {
         <header className="screen-header">
           <h1>バケット</h1>
         </header>
-        <p className="empty">人格がまだ登録されていません。人格情報タブで追加できます</p>
+        <p className="empty">{t('人格がまだ登録されていません。人格情報タブで追加できます')}</p>
       </main>
     );
   }

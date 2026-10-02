@@ -14,6 +14,7 @@ import { useLiveQuery } from '../hooks/useLiveQuery';
 import { showSaveError } from '../lib/showError';
 import type { AlterCategory } from '../lib/types';
 import { normalizeName } from '../lib/validation';
+import { useTerm } from '../hooks/useTerm';
 
 interface Props {
   /** 編集する区分(追加のときは undefined) */
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export function AlterCategoryEditScreen({ category, onBack }: Props) {
+  const { t } = useTerm();
   const [name, setName] = useState(category?.name ?? '');
   const [error, setError] = useState<string | null>(null);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
@@ -100,7 +102,7 @@ export function AlterCategoryEditScreen({ category, onBack }: Props) {
             この区分を削除する
           </button>
           {usage !== undefined && usage > 0 && (
-            <p className="edit-actions__note">この区分の人格がいるため削除できません。</p>
+            <p className="edit-actions__note">{t('この区分の人格がいるため削除できません。')}</p>
           )}
         </section>
       )}

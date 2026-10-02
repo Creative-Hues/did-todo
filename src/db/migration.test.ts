@@ -149,14 +149,22 @@ describe('データベースの版を上げる', () => {
     expect(noteCategories.map((c) => c.name)).toEqual(['体調', '薬', '睡眠', '気分', '人格のこと', '生活', 'その他']);
   });
 
-  it('新しく入れたときも、最初の区分と受診メモの分類が1回だけ入る', async () => {
+  it('新しく入れたときは、区分は空で、受診メモの分類が1回だけ入る(「人格のこと」の代わりに「交代のこと」。SPEC.md 14章③)', async () => {
     database = new AppDatabase(DB_NAME);
     await database.open();
     database.close();
     // 開き直しても、もう一度は入らない
     database = new AppDatabase(DB_NAME);
-    expect(await database.categories.count()).toBe(4);
-    expect(await database.clinicNoteCategories.count()).toBe(7);
+    expect(await database.categories.count()).toBe(0);
+    expect((await database.clinicNoteCategories.orderBy('order').toArray()).map((c) => c.name)).toEqual([
+      '体調',
+      '薬',
+      '睡眠',
+      '気分',
+      '交代のこと',
+      '生活',
+      'その他',
+    ]);
     expect(await database.alters.count()).toBe(0);
     expect(await database.meta.count()).toBe(0);
   });

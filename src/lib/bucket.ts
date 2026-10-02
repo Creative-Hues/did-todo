@@ -2,6 +2,7 @@
 // バケットは「その人格の願い」なので、項目を変える操作はどれも本人確認の文を出す
 import type { FormResult } from './clinicNotes';
 import type { Alter, BucketItem } from './types';
+import { DEFAULT_TERM, withTerm } from './term';
 
 function byOrder(a: { order: number }, b: { order: number }): number {
   return a.order - b.order;
@@ -104,8 +105,9 @@ export function achieveConfirmMessage(ownerName: string): string {
 }
 
 /** 「まだ」に戻すときの本人確認(SPEC.md 9.2) */
-export function unachieveConfirmMessage(ownerName: string): string {
-  return `${ownerPrefix(ownerName)}「まだ」に戻しますか?叶った日と協力してくれた人格の記録は消えます。`;
+export function unachieveConfirmMessage(ownerName: string, term: string = DEFAULT_TERM): string {
+  // 名前を入れる前の決まった文だけを、呼び方に置き換える(SPEC.md 14章③)
+  return `${ownerPrefix(ownerName)}${withTerm('「まだ」に戻しますか?叶った日と協力してくれた人格の記録は消えます。', term)}`;
 }
 
 /** 削除の本人確認(SPEC.md 9.3)。1件の削除でも同じ形 */

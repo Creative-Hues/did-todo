@@ -1730,3 +1730,26 @@ body {
 .update-notice__backup {
   font-weight: bold;
 }
+
+/* ---- フェーズ14:呼び方の設定(SPEC.md 14章③) ---- */
+
+.term-form {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.term-form input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* 画面には出さず、読み上げにだけ使う */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

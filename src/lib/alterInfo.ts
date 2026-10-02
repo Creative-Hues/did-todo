@@ -3,6 +3,7 @@ import type { FormResult } from './clinicNotes';
 import { formatCalendarDateSlash } from './timeFormat';
 import type { Alter, AlterCategory, ProfileSection } from './types';
 import { normalizeName } from './validation';
+import { DEFAULT_TERM, withTerm } from './term';
 
 /** 区分を選んでいない人格(区分が見つからない人格も)をまとめる見出し */
 export const UNCATEGORIZED_NAME = '未分類';
@@ -168,10 +169,12 @@ export function buildAllPrint(
   categories: readonly AlterCategory[],
   sections: readonly ProfileSection[],
   now: Date,
+  /** 「人格」の呼び方(SPEC.md 14章③) */
+  term: string = DEFAULT_TERM,
 ): PrintContent {
   const ordered = groupAltersByCategory(alters, categories).groups.flatMap((group) => group.alters);
   return {
-    title: '人格について',
+    title: withTerm('人格について', term),
     dateText: formatCalendarDateSlash(now),
     common: printableSections(sections, null).map(toPrintSection),
     quickTable: buildQuickTableRows(alters, categories),

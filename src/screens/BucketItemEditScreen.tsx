@@ -20,6 +20,7 @@ import {
 import { showSaveError } from '../lib/showError';
 import { formatMonthDay } from '../lib/timeFormat';
 import type { Alter, BucketItem } from '../lib/types';
+import { useTerm } from '../hooks/useTerm';
 
 interface Props {
   /** 誰のリストか */
@@ -40,6 +41,7 @@ type Confirming =
   | { kind: 'delete' };
 
 export function BucketItemEditScreen({ owner, item, alters, onBack, onAchieve }: Props) {
+  const { term } = useTerm();
   const [confirming, setConfirming] = useState<Confirming | null>(null);
   // 内容を書き換えて、まだ保存していないか(そのあいだは「叶ったことにする」を押せなくする)
   const [dirty, setDirty] = useState(false);
@@ -119,7 +121,7 @@ export function BucketItemEditScreen({ owner, item, alters, onBack, onAchieve }:
         return (
           item && (
             <ConfirmDialog
-              message={unachieveConfirmMessage(owner.name)}
+              message={unachieveConfirmMessage(owner.name, term)}
               confirmLabel="「まだ」に戻す"
               onConfirm={() => handleUnachieve(item)}
               onCancel={cancel}

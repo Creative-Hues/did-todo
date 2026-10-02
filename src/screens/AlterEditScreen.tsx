@@ -16,6 +16,7 @@ import { useLiveQuery } from '../hooks/useLiveQuery';
 import { deleteAlterConfirmMessage } from '../lib/alterInfo';
 import { showSaveError } from '../lib/showError';
 import type { Alter, AlterCategory } from '../lib/types';
+import { useTerm } from '../hooks/useTerm';
 
 interface Props {
   /** 編集する人格(追加のときは undefined) */
@@ -29,6 +30,7 @@ interface Props {
 }
 
 export function AlterEditScreen({ alter, categories, onBack, onAdded, onDeleted }: Props) {
+  const { t } = useTerm();
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   // 完了記録・服薬記録・受診メモ・コメントの件数(1件以上あると削除できない。SPEC.md 3.1)
   const recordCount = useLiveQuery(
@@ -82,7 +84,7 @@ export function AlterEditScreen({ alter, categories, onBack, onAdded, onDeleted 
         <button type="button" onClick={onBack}>
           ‹ 戻る
         </button>
-        <h1>{alter ? '人格を編集' : '人格を追加'}</h1>
+        <h1>{t(alter ? '人格を編集' : '人格を追加')}</h1>
       </header>
       <AlterForm initial={alter} categories={categories} onSubmit={handleSubmit} onCancel={onBack} />
       {alter && (
@@ -97,7 +99,7 @@ export function AlterEditScreen({ alter, categories, onBack, onAdded, onDeleted 
             disabled={recordCount !== 0}
             onClick={() => setConfirmingDelete(true)}
           >
-            この人格を削除する
+            {t('この人格を削除する')}
           </button>
           {recordCount !== undefined && recordCount > 0 && (
             <p className="edit-actions__note">

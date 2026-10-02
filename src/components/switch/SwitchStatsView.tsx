@@ -2,15 +2,17 @@
 // 時間帯・きっかけは、人格ごとの回数を色の帯(横に積み重ねた棒)と数で出す
 import { switchAlterLabel, type SwitchAlterCount, type SwitchStats, type SwitchStatsRow } from '../../lib/switchLog';
 import { countText } from '../../lib/stats';
+import { useTerm } from '../../hooks/useTerm';
 
 /** 「わからない」の帯の色(どの人格の色とも区別しやすい灰色) */
 export const UNKNOWN_SEGMENT_COLOR = '#9a9a9a';
 
 export function SwitchStatsView({ stats }: { stats: SwitchStats }) {
+  const { t } = useTerm();
   return (
     <>
       <div className="stats-card">
-        <h3>人格ごと</h3>
+        <h3>{t('人格ごと')}</h3>
         <AlterCounts counts={stats.byAlter} />
       </div>
       <div className="stats-card">

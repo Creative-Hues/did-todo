@@ -85,7 +85,13 @@ describe('バックアップの読み取り', () => {
     const result = parseBackup(serializeBackup(buildBackup(data, now)));
     expect(result).toEqual({
       ok: true,
-      backup: { app: 'minna-todo', formatVersion: BACKUP_FORMAT_VERSION, exportedAt: now.toISOString(), data },
+      backup: {
+        app: 'minna-todo',
+        formatVersion: BACKUP_FORMAT_VERSION,
+        exportedAt: now.toISOString(),
+        data,
+        settings: { altersTerm: '人格' },
+      },
     });
   });
 
@@ -440,5 +446,27 @@ describe('交代の記録のバックアップ(SPEC.md 12章・17章)', () => {
       ok: false,
       reason: '「交代の記録」の1件目の形が正しくありません',
     });
+  });
+});
+
+describe('呼び方のバックアップ(SPEC.md 12章・14章③)', () => {
+  it('呼び方も書き出され、そのまま読み込める', () => {
+    const result = parseBackup(serializeBackup(buildBackup(emptyData(), now, { altersTerm: 'メンバー' })));
+    expect(result.ok && result.backup.settings).toEqual({ altersTerm: 'メンバー' });
+  });
+
+  it('呼び方が入っていない古いファイルは、「人格」として読み込む', () => {
+    const json = exportedJson();
+    delete json.settings;
+    const result = parseBackup(JSON.stringify(json));
+    expect(result.ok && result.backup.settings).toEqual({ altersTerm: '人格' });
+  });
+
+  it('呼び方が正しくなければ読み込まない', () => {
+    const json = exportedJson();
+    json.settings = { altersTerm: '' };
+    expect(parseBackup(JSON.stringify(json))).toEqual({ ok: false, reason: '呼び方の設定が正しくありません' });
+    json.settings = 'メンバー';
+    expect(parseBackup(JSON.stringify(json))).toEqual({ ok: false, reason: '呼び方の設定が正しくありません' });
   });
 });
