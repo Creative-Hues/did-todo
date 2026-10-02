@@ -1,0 +1,33 @@
+# 一時的な画面確認用(このブランチだけで動く。main には入れない)
+name: 画面の確認(一時)
+
+on:
+  push:
+    branches: [tmp/screenshots]
+
+permissions:
+  contents: write
+
+jobs:
+  shots:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm i --no-save playwright && npx playwright install --with-deps chromium webkit
+      - run: |
+          npx vite preview --port 4173 --strictPort &
+          sleep 3
+          node ci-shots/shoot.mjs 2>&1 | tee ci-shots/log.txt
+      - if: always()
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add -f ci-shots/out ci-shots/log.txt
+          git commit -m "画面の確認用スクリーンショット(一時)"
+          git push
