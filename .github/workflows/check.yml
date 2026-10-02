@@ -26,6 +26,9 @@ jobs:
 
       - run: npm run build
 
+      # 新しい版の情報(version.json)が、公開する中身に入っているか確かめる(SPEC.md 18.3)
+      - run: node -e "const v=JSON.parse(require('fs').readFileSync('dist/version.json','utf8')); if(!Number.isSafeInteger(v.dbVersion)) process.exit(1); console.log(v)"
+
       # ビルドした中身を、画面の確認用に残す(7日で消える)
       - uses: actions/upload-artifact@v4
         with:

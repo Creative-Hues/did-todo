@@ -3,6 +3,7 @@ import 'fake-indexeddb/auto';
 import { Dexie } from 'dexie';
 import { afterEach, describe, expect, it } from 'vitest';
 import { AppDatabase } from './db';
+import { DB_VERSION } from './dbVersion';
 import { DEFAULT_SWITCH_TAGS } from '../lib/switchLog';
 import type { AlterV1 } from './initialData';
 import type { CompletionRecord, Medication, MedicationIntake, StockLog, Task } from '../lib/types';
@@ -550,6 +551,12 @@ describe('データベースの版を上げる', () => {
       expect(await database.profileSections.count()).toBe(3);
     });
   });
+  it('データベースの版の数字(DB_VERSION)が、実際のデータベースの版と同じ(SPEC.md 18.3)', async () => {
+    database = new AppDatabase(DB_NAME);
+    await database.open();
+    expect(database.verno).toBe(DB_VERSION);
+  });
+
   describe('版5 → 版6(交代のきっかけと交代の記録。SPEC.md 3.5・17章)', () => {
     /** きっかけの [ID, 名前, 並び順, 非表示] を並び順で */
     async function tagRows(db: AppDatabase) {
